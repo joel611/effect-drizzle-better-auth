@@ -1,2 +1,5 @@
 .claude/worktrees
 node_modules
+.turbo
+.env
+!.env.example

@@ -1,0 +1,3 @@
+# Use @effect/sql-pg (pg-based) instead of Bun.sql for the Postgres client Layer
+
+CLAUDE.md says to use `Bun.sql` for Postgres and not `pg`. We deliberately broke that rule here: `@effect/sql-pg` is `pg`-based, and Drizzle's official Effect integration (`drizzle-orm/effect-postgres`) is built against it — there's no equivalent first-party bridge from Drizzle to `Bun.sql`. Hand-rolling that bridge ourselves would mean maintaining a Drizzle driver, which is out of scope for a repo about learning Effect's DI model, not about writing database drivers. `@effect/sql-pg` still gets Layer-wired by hand (see `packages/db/src/client.ts`), so the DI-learning goal isn't lost — only the wire-protocol driver is off-the-shelf.
