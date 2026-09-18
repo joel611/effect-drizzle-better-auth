@@ -1,0 +1,19 @@
+{
+  "name": "effect-drizzle-better-auth",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "catalog": {
+      "typescript": "7.0.2",
+      "@types/bun": "latest"
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}
