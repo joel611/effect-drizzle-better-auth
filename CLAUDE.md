@@ -20,7 +20,7 @@ Default to using Bun instead of Node.js.
 
 ## Testing
 
-Use `bun test` to run tests, except in packages that need Vitest's mocking/coverage tooling for Effect Layer tests (e.g. `packages/core`, `packages/db`) — those run via `vitest` explicitly.
+Use `bun test` to run tests, except `packages/core` and `packages/db`, which use `vitest` by explicit project choice.
 
 ```ts#index.test.ts
 import { test, expect } from "bun:test";

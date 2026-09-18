@@ -28,7 +28,7 @@ Learn Effect-ts's dependency-injection model by building small, real service aro
 
 ```sh
 cp .env.example .env
-docker compose up -d
+docker compose up -d --wait
 bun install
 bun run db:migrate
 bun run dev
