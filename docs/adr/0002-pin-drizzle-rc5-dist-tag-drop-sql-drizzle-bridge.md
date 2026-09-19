@@ -1,0 +1,7 @@
+# Pin drizzle-orm/drizzle-kit to the `rc5` dist-tag build; use Drizzle's native effect-postgres adapter, not @effect/sql-drizzle
+
+`drizzle-orm@1.0.0-rc.4` (what the `rc` dist-tag still resolves to) calls `Schema.TaggedErrorClass`, which effect renamed to `Schema.TaggedError` in `4.0.0-beta.104`. Its peer range (`effect >=4.0.0-beta.83 || >=4.0.0`) admits both sides of the rename, so `effect@rc` installs cleanly and then throws `Schema$1.TaggedErrorClass is not a function` at import time. Upstream tracks this in drizzle-orm#6162; the fix (PR #6108, closed) shipped in `1.0.0-rc.5`, whose peer floor is `effect >=4.0.0-beta.105`. That build is only published under the `rc5` dist-tag, so `drizzle-orm` and `drizzle-kit` are pinned to the exact `1.0.0-rc.5-5935859` in the root `package.json` catalog, alongside `effect` and `@effect/sql-pg` at `4.0.0-rc.115`. Once `rc` is promoted past rc.4, switch the catalog to a plain rc version. Until then, do not replace the pins with `rc`, and re-verify with a real query, not just install, when bumping either side.
+
+Earlier we worked around this by pinning `effect`/`@effect/sql-pg` back to `4.0.0-beta.83`; that pin is removed.
+
+Separately, we don't use the `@effect/sql-drizzle` bridge package at all. It peers on `effect@^3.22.0` (v3, incompatible with the v4 line this repo is built on) and is superseded by Drizzle's own first-party `drizzle-orm/effect-postgres` adapter (`PgDrizzle.makeWithDefaults()`), which `packages/db/src/client.ts` uses directly against `@effect/sql-pg`.
