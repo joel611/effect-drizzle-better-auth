@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
-import { Db, DbLive } from "./client";
+import { Db } from "./client";
 import { task } from "./schema";
 
 describe("Db layer", () => {
@@ -17,7 +17,7 @@ describe("Db layer", () => {
     });
 
     const { inserted, rows } = await Effect.runPromise(
-      program.pipe(Effect.provide(DbLive)) as Effect.Effect<
+      program.pipe(Effect.provide(Db.layer)) as Effect.Effect<
         { inserted: unknown; rows: unknown[] },
         unknown,
         never

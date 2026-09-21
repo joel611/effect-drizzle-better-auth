@@ -1,8 +1,8 @@
-import { TaskRepository, TaskRepositoryLive } from "core";
+import { TaskRepository } from "core";
 import * as Effect from "effect/Effect";
 import * as ManagedRuntime from "effect/ManagedRuntime";
 
-const runtime = ManagedRuntime.make(TaskRepositoryLive);
+const runtime = ManagedRuntime.make(TaskRepository.layer);
 const port = Number(process.env.PORT ?? 3000);
 
 const server = Bun.serve({

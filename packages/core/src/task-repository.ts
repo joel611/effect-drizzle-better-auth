@@ -1,4 +1,4 @@
-import { Db, DbLive, task } from "db";
+import { Db, task } from "db";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -26,9 +26,9 @@ export class TaskRepository extends Context.Service<TaskRepository>()(
       };
     }),
   }
-) {}
-
-export const TaskRepositoryLive = Layer.effect(
-  TaskRepository,
-  TaskRepository.make
-).pipe(Layer.provide(DbLive));
+) {
+  static readonly layerNoDeps = Layer.effect(this, this.make);
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Db.layer)
+  );
+}

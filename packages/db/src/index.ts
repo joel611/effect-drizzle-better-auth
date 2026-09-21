@@ -1,2 +1,2 @@
-export { Db, DbLive } from "./client";
+export { Db } from "./client";
 export { task } from "./schema";

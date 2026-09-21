@@ -12,8 +12,9 @@ const PgClientLive = PgClient.layer({
 
 export class Db extends Context.Service<Db>()("Db", {
   make: PgDrizzle.makeWithDefaults(),
-}) {}
-
-export const DbLive = Layer.effect(Db, Db.make).pipe(
-  Layer.provide(PgClientLive)
-);
+}) {
+  static readonly layerNoDeps = Layer.effect(this, this.make);
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(PgClientLive)
+  );
+}

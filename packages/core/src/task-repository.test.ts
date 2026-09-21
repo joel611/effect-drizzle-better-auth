@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
-import { TaskRepository, TaskRepositoryLive } from "./task-repository";
+import { TaskRepository } from "./task-repository";
 
 describe("TaskRepository", () => {
   it("creates a task and lists it back", async () => {
@@ -13,7 +13,7 @@ describe("TaskRepository", () => {
     });
 
     const { created, all } = await Effect.runPromise(
-      program.pipe(Effect.provide(TaskRepositoryLive)) as Effect.Effect<
+      program.pipe(Effect.provide(TaskRepository.layer)) as Effect.Effect<
         { created: { title: string }; all: unknown[] },
         unknown,
         never
