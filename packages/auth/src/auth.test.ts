@@ -1,4 +1,6 @@
+import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
@@ -46,5 +48,20 @@ describe("Auth over an in-memory AuthAdapter", () => {
     const error = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
     expect(error._tag).toBe("AuthError");
+  });
+
+  it("fails layer construction when BETTER_AUTH_SECRET is missing", async () => {
+    const exit = await Effect.runPromise(
+      Effect.exit(
+        Effect.gen(function* program() {
+          yield* Auth;
+        }).pipe(
+          Effect.provide(layer),
+          Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnvRecord({})))
+        )
+      )
+    );
+
+    expect(Exit.isFailure(exit)).toBe(true);
   });
 });

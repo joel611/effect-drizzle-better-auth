@@ -29,7 +29,15 @@ Where the Effect dependency-injection pattern stops holding up across Effect, Dr
 - **Consequence:** the real adapter and where-clause translator can only be tested against Postgres.
 - **Pinned by:** `auth.test.ts` (memory) and `auth.postgres.test.ts` (real).
 
+## 5. The adapter's model lookup is a hand-listed map
+
+- **What we found:** the adapter resolves a Better Auth model name to a Drizzle table through a small map of the four auth tables in the adapter file. Importing the whole `db` schema namespace would avoid that, but the repo's lint bans the barrel-style `import * as`, so adding an auth table means editing the map as well as the schema.
+- **Consequence:** a model missing from the map fails loudly ("Unknown auth model"), not silently.
+
 ## Notes
 
+- Version check: `better-auth` is pinned to `1.7.5`. It declares no peer range on `effect`, and its optional `drizzle-orm` peer (`^0.45.2 || >=1.0.0-rc.1 <2.0.0`) admits the pinned `drizzle-orm@1.0.0-rc.5-5935859` (ADR 0002). The stack runs against the pinned `effect@4.0.0-rc.115`, so no pin conflict was found.
+- Deviations from the spec's probe list: probe 3 (rollback) drives `Auth.instance`'s Better Auth adapter transaction directly, because forcing a failure partway through `signUpEmail` would need a test-only database hook in `Auth`. `auth.context.test.ts` shows sign-up does run in a database transaction (a `sql.transaction` span appears). Probe 4 asserts span names, not a query count. `Db` is not swapped on its own (see finding 4).
+- Where-clause connectors follow Better Auth's own Drizzle adapter: all AND conditions are grouped, all OR conditions are grouped, and the two groups are ANDed. An unknown operator throws.
 - Effect v4 names differ from v3 and from the spec draft: `Effect.context()` (not `Effect.services()`), `Config.String` and `Config.Redacted` (capitalised), `Data.TaggedError`.
 - Better Auth's `consumeOne` and `incrementOne` are optional on the adapter and the factory supplies fallbacks, so the adapter does not implement them.

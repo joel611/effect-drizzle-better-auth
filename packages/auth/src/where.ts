@@ -101,7 +101,10 @@ const conditionOf = (table: PgTable, where: CleanedWhere): SQL => {
       where.value
     );
   }
-  return equalityCondition(column, where);
+  if (operator === "eq" || operator === "ne") {
+    return equalityCondition(column, where);
+  }
+  throw new Error(`Unsupported where operator "${operator}"`);
 };
 
 export const whereClause = (

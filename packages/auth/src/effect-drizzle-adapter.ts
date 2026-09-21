@@ -126,6 +126,24 @@ type Database = (
   options: BetterAuthOptions
 ) => ReturnType<ReturnType<typeof createAdapterFactory>>;
 
+const baseConfig = {
+  adapterId: "effect-drizzle",
+  adapterName: "Effect Drizzle Adapter",
+  customTransformOutput: ({
+    data,
+    fieldAttributes,
+  }: {
+    data: unknown;
+    fieldAttributes: { type: unknown };
+  }) =>
+    fieldAttributes.type === "date" && data !== null && data !== undefined
+      ? new Date(data as string)
+      : data,
+  supportsArrays: true,
+  supportsJSON: true,
+  supportsUUIDs: true,
+};
+
 /**
  * Builds Better Auth's `database` option on top of an Effect-flavoured Drizzle
  * executor. `run` is how promise-land re-enters Effect-land, always with the
@@ -136,32 +154,19 @@ export const makeDatabase = (db: Db["Service"], run: Run): Database => {
   const factory = createAdapterFactory({
     adapter: customAdapter(db, run),
     config: {
-      adapterId: "effect-drizzle",
-      adapterName: "Effect Drizzle Adapter",
-      customTransformOutput: ({ data, fieldAttributes }) =>
-        fieldAttributes.type === "date" && data !== null && data !== undefined
-          ? new Date(data)
-          : data,
-      supportsArrays: true,
-      supportsJSON: true,
-      supportsUUIDs: true,
+      ...baseConfig,
       transaction: (body) =>
         run(
           db.transaction((tx) =>
             Effect.gen(function* inTransaction() {
+              // The transaction's connection lives in Effect context, so the
+              // adapter handed to `body` must run with these services.
               const services = yield* Effect.context<never>();
-              const txRun: Run = (effect) =>
-                Effect.runPromiseWith(services)(effect);
               const txFactory = createAdapterFactory({
-                adapter: customAdapter(tx, txRun),
-                config: {
-                  adapterId: "effect-drizzle",
-                  adapterName: "Effect Drizzle Adapter",
-                  supportsArrays: true,
-                  supportsJSON: true,
-                  supportsUUIDs: true,
-                  transaction: false,
-                },
+                adapter: customAdapter(tx, (effect) =>
+                  Effect.runPromiseWith(services)(effect)
+                ),
+                config: { ...baseConfig, transaction: false },
               });
               return yield* Effect.tryPromise({
                 catch: (error) => error,

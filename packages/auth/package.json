@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "better-auth": "latest",
+    "better-auth": "1.7.5",
     "db": "workspace:*",
     "drizzle-orm": "catalog:",
     "effect": "catalog:"
