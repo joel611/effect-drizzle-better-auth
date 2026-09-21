@@ -1,13 +1,22 @@
+import { Auth } from "auth";
 import { TaskRepository } from "core";
 import * as Effect from "effect/Effect";
 import * as ManagedRuntime from "effect/ManagedRuntime";
 
 const runtime = ManagedRuntime.make(TaskRepository.layer);
+const authRuntime = ManagedRuntime.make(Auth.layer);
 const port = Number(process.env.PORT ?? 3000);
 
 const server = Bun.serve({
   port,
   routes: {
+    "/api/auth/*": (req) =>
+      authRuntime.runPromise(
+        Effect.gen(function* handle() {
+          const auth = yield* Auth;
+          return yield* Effect.promise(() => auth.instance.handler(req));
+        })
+      ),
     "/tasks": {
       GET: async () => {
         const tasks = await runtime.runPromise(

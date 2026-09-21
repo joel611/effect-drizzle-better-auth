@@ -39,4 +39,7 @@ export class Auth extends Context.Service<Auth>()("Auth", {
   }),
 }) {
   static readonly layerNoDeps = Layer.effect(this, this.make);
+  static readonly layer = this.layerNoDeps.pipe(
+    Layer.provide(AuthAdapter.layer)
+  );
 }
