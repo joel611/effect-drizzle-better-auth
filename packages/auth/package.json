@@ -1,5 +1,5 @@
 {
-  "name": "db",
+  "name": "auth",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,20 +8,20 @@
   },
   "scripts": {
     "typecheck": "tsgo --noEmit",
-    "test": "vitest run",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "test": "vitest run"
   },
   "dependencies": {
+    "better-auth": "1.7.5",
+    "core": "workspace:*",
+    "db": "workspace:*",
     "drizzle-orm": "catalog:",
-    "effect": "catalog:",
-    "pg": "catalog:"
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@types/pg": "catalog:",
     "@typescript/native-preview": "catalog:",
-    "drizzle-kit": "catalog:",
+    "pg": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -1,20 +1,21 @@
-import { PgClient } from "@effect/sql-pg";
-import * as PgDrizzle from "drizzle-orm/effect-postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
 import * as Context from "effect/Context";
+import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as Redacted from "effect/Redacted";
-
-const PgClientLive = PgClient.layer({
-  url: Redacted.make(
-    process.env.DATABASE_URL ?? "postgres://app:app@localhost:5477/app"
-  ),
-});
+import { Pool } from "pg";
 
 export class Db extends Context.Service<Db>()("Db", {
-  make: PgDrizzle.makeWithDefaults(),
+  make: Effect.acquireRelease(
+    Effect.sync(() =>
+      drizzle({
+        client: new Pool({
+          connectionString:
+            process.env.DATABASE_URL ?? "postgres://app:app@localhost:5477/app",
+        }),
+      })
+    ),
+    (db) => Effect.promise(() => db.$client.end())
+  ),
 }) {
-  static readonly layerNoDeps = Layer.effect(this, this.make);
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(PgClientLive)
-  );
+  static readonly layer = Layer.effect(this, this.make);
 }

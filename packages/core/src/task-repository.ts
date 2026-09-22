@@ -11,18 +11,14 @@ export class TaskRepository extends Context.Service<TaskRepository>()(
 
       return {
         create: (title: string) =>
-          db
-            .insert(task)
-            .values({ title })
-            .returning()
-            .pipe(
-              Effect.flatMap(([row]) =>
-                row
-                  ? Effect.succeed(row)
-                  : Effect.die("insert returned no rows")
-              )
-            ),
-        list: () => db.select().from(task),
+          Effect.tryPromise(() =>
+            db.insert(task).values({ title }).returning()
+          ).pipe(
+            Effect.flatMap(([row]) =>
+              row ? Effect.succeed(row) : Effect.die("insert returned no rows")
+            )
+          ),
+        list: () => Effect.tryPromise(() => db.select().from(task)),
       };
     }),
   }
