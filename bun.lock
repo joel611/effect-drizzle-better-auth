@@ -79,10 +79,12 @@
         "typescript": "catalog:",
         "vitest": "catalog:",
       },
+      "peerDependencies": {
+        "auth": "workspace:*",
+      },
     },
   },
   "catalog": {
-    "@effect/sql-pg": "4.0.0-rc.115",
     "@types/bun": "latest",
     "@types/pg": "^8.23.1",
     "@typescript/native-preview": "latest",

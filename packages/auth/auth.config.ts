@@ -6,17 +6,26 @@
  * CLI (`bunx auth@latest generate`) has a plain, synchronously constructible
  * `auth` export.
  *
- * Run from the repo root:
+ * `src/auth-schema.ts` is owned by this package and is the CLI's output —
+ * regenerate it in place after adding a plugin that adds tables:
  *
  *   bunx auth@latest generate --config packages/auth/auth.config.ts \
- *     --output packages/db/generated/auth-schema.ts
+ *     --output packages/auth/src/auth-schema.ts --yes
  *
- * Diff the output against `packages/db/src/schema.ts` by hand; don't let the
- * CLI overwrite it directly, since that file also defines `task`.
+ * Then clean up the CLI cruft noted atop `auth-schema.ts` (`relations()`
+ * calls, `@__PURE__` annotations). `db/src/schema.ts` re-exports the result
+ * alongside `task`, so run `bun run db:generate` (from `packages/db`) to
+ * turn the schema change into a migration.
+ *
+ * No `schema` option is passed to `drizzleAdapter` here (unlike the runtime
+ * `AuthAdapter`): the CLI loads this file with its own bundled `drizzle-orm`,
+ * which doesn't have to match the workspace's pinned rc build, so importing
+ * the generated `auth-schema.ts`'s `relations()` calls back into this file
+ * would break the generator that produces them. `generate` only needs
+ * `provider: "pg"` to pick a dialect; it doesn't read the adapter's schema.
  */
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { authTables } from "db";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
@@ -28,7 +37,6 @@ export const auth = betterAuth({
   baseURL: "http://localhost:3000",
   database: drizzleAdapter(db, {
     provider: "pg",
-    schema: authTables,
   }),
   emailAndPassword: { enabled: true },
   secret: "cli-only-placeholder-not-used-at-runtime",
