@@ -2,6 +2,8 @@
 
 Where the Effect dependency-injection pattern stops holding up across Effect, Drizzle and Better Auth. One entry per finding: what broke, why, workaround, and the test that pins it down.
 
+See [`effect-di-limits.html`](./effect-di-limits.html) for a diagram of the call flow, the promise boundary, and where each finding below attaches to it.
+
 ## 1. Drizzle's Effect builders are not promises, so Better Auth's stock adapter cannot use `Db`
 
 - **What broke:** Better Auth's `drizzleAdapter` does `await db.select()...`. Against `Db` the `await` returns the un-run `Effect` object.
