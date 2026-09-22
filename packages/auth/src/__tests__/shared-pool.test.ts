@@ -5,8 +5,8 @@ import * as Layer from "effect/Layer";
 import type { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 
-import { Auth } from "./auth";
-import { AuthAdapter } from "./auth-adapter";
+import { Auth } from "../auth";
+import { AuthAdapter } from "../auth-adapter";
 
 const layer = Layer.mergeAll(TaskRepository.layerNoDeps, Auth.layerNoDeps).pipe(
   Layer.provideMerge(AuthAdapter.layerNoDeps),

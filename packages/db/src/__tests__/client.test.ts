@@ -1,8 +1,8 @@
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
-import { Db } from "./client";
-import { task } from "./schema";
+import { Db } from "../client";
+import { task } from "../schema";
 
 describe("Db layer", () => {
   it("round-trips a row through the DI-provided drizzle instance", async () => {

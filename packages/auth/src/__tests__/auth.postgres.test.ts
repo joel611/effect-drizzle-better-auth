@@ -3,8 +3,8 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
-import { Auth } from "./auth";
-import { AuthAdapter } from "./auth-adapter";
+import { Auth } from "../auth";
+import { AuthAdapter } from "../auth-adapter";
 
 const layer = Auth.layerNoDeps.pipe(
   Layer.provide(AuthAdapter.layerNoDeps),

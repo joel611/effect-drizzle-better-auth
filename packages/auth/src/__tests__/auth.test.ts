@@ -4,8 +4,8 @@ import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
-import { Auth } from "./auth";
-import { AuthAdapter } from "./auth-adapter";
+import { Auth } from "../auth";
+import { AuthAdapter } from "../auth-adapter";
 
 const credentials = {
   email: "memory@example.com",
