@@ -1,20 +1,14 @@
-import { Db } from "db";
 import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
 import { Auth } from "../auth";
-import { AuthAdapter } from "../auth-adapter";
 
-const layer = Auth.layerNoDeps.pipe(
-  Layer.provide(AuthAdapter.layerNoDeps),
-  Layer.provideMerge(Db.layer)
-);
+const { layer } = Auth;
 
 const unique = (label: string) => `${label}-${crypto.randomUUID()}@example.com`;
 const password = "correct-horse-battery";
 
-describe("Auth over the Postgres-backed AuthAdapter", () => {
+describe("Auth over the Postgres-backed drizzleAdapter", () => {
   it("signs up, signs in and reads the session back through Postgres", async () => {
     const email = unique("pg");
     const program = Effect.gen(function* program() {

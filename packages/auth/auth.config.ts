@@ -17,8 +17,9 @@
  * into a migration.
  *
  * No `schema` option is passed to `drizzleAdapter` here (unlike the runtime
- * `AuthAdapter`): the CLI loads this file with its own bundled `drizzle-orm`,
- * which doesn't have to match the workspace's pinned rc build, so importing
+ * `Auth` service in `src/auth.ts`): the CLI loads this file with its own
+ * bundled `drizzle-orm`, which doesn't have to match the workspace's pinned
+ * rc build, so importing
  * the generated `auth-schema.ts` back into this file risks the same kind of
  * version skew. `generate` only needs `provider: "pg"` to pick a dialect; it
  * doesn't read the adapter's schema.

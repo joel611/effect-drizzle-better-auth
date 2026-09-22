@@ -1,11 +1,9 @@
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
-import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
 import { Auth } from "../auth";
-import { AuthAdapter } from "../auth-adapter";
 
 const credentials = {
   email: "memory@example.com",
@@ -13,8 +11,8 @@ const credentials = {
   password: "correct-horse-battery",
 };
 
-describe("Auth over an in-memory AuthAdapter", () => {
-  const layer = Auth.layerNoDeps.pipe(Layer.provide(AuthAdapter.layerMemory));
+describe("Auth over an in-memory adapter", () => {
+  const layer = Auth.layerMemory;
 
   it("signs up, signs in and reads the session back", async () => {
     const program = Effect.gen(function* program() {
