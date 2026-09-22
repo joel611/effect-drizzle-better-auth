@@ -13,6 +13,7 @@
     "auth:generate": "bunx auth@latest generate --config auth.config.ts --output src/auth-schema.ts --yes"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.5",
     "better-auth": "1.7.5",
     "core": "workspace:*",
     "db": "workspace:*",

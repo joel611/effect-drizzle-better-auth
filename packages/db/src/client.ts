@@ -1,3 +1,4 @@
+import { authRelations } from "auth/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -12,6 +13,7 @@ export class Db extends Context.Service<Db>()("Db", {
           connectionString:
             process.env.DATABASE_URL ?? "postgres://app:app@localhost:5477/app",
         }),
+        relations: authRelations,
       })
     ),
     (db) => Effect.promise(() => db.$client.end())
