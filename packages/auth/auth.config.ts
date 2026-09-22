@@ -9,8 +9,7 @@
  * `src/auth-schema.ts` is owned by this package and is the CLI's output —
  * regenerate it in place after adding a plugin that adds tables:
  *
- *   bunx auth@latest generate --config packages/auth/auth.config.ts \
- *     --output packages/auth/src/auth-schema.ts --yes
+ *   bun run auth:generate
  *
  * Then clean up the CLI cruft noted atop `auth-schema.ts` (`relations()`
  * calls, `@__PURE__` annotations). `db/src/schema.ts` re-exports the result
