@@ -1,0 +1,5 @@
+# Bridge Better Auth to Db with a custom adapter, not Better Auth's stock Drizzle adapter
+
+Better Auth's `drizzleAdapter` runs queries with `await db.select()...`. In `drizzle-orm/effect-postgres` every query builder is an `Effect`, not a thenable, so the stock adapter cannot drive `Db`. We build the adapter ourselves with Better Auth's `createAdapterFactory` (`packages/auth/src/effect-drizzle-adapter.ts`): each operation builds the Drizzle query against `Db` and re-enters Effect with `Effect.runPromiseWith(services)`, where `services` is the context captured when the `AuthAdapter` layer was built.
+
+Rejected alternatives: a second plain `node-postgres` Drizzle instance beside `Db` (works, but the auth tables would then bypass the `Db` service, so the DI story stops at the auth layer), and a `Proxy` that makes `Db`'s builders thenable (small, but it hides the Promise boundary this repo exists to study, and Effect-callback transactions cannot be proxied). The cost of the chosen path is roughly 150 lines of adapter plus a where-clause translator. If the adapter proves unworkable, fall back to the second plain Drizzle instance and supersede this ADR.

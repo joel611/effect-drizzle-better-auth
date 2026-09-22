@@ -1,2 +1,2 @@
 export { Db } from "./client";
-export { task } from "./schema";
+export { account, session, task, user, verification } from "./schema";

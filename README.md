@@ -22,7 +22,8 @@ Learn Effect-ts's dependency-injection model by building small, real service aro
 
 - `packages/db` — Drizzle schema, `drizzle-kit` config, and the `Db` Effect Layer (`@effect/sql-pg` + `drizzle-orm/effect-postgres`)
 - `packages/core` — domain services built on top of `packages/db` (e.g. `TaskRepository`)
-- `apps/server` — `Bun.serve` entrypoint wiring services into HTTP routes
+- `packages/auth` — Better Auth wrapped as Effect services (`Db` → `AuthAdapter` → `Auth`); see `docs/effect-di-limits.md` for what this taught us about Effect DI
+- `apps/server` — `Bun.serve` entrypoint wiring services into HTTP routes (tasks, and Better Auth under `/api/auth/*`)
 
 ## Getting started
 
