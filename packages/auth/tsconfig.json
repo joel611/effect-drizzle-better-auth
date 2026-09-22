@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src"],
+  "include": ["src", "auth.config.ts"],
   "compilerOptions": {
     "strictNullChecks": true
   }
