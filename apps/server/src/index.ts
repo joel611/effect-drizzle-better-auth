@@ -1,12 +1,9 @@
 import { Auth } from "auth";
 import { TaskRepository } from "core";
 import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import * as ManagedRuntime from "effect/ManagedRuntime";
 
-const runtime = ManagedRuntime.make(
-  Layer.mergeAll(TaskRepository.layer, Auth.layer)
-);
+import { runtime } from "./effect-runtime";
+
 const port = Number(process.env.PORT ?? 3000);
 
 const server = Bun.serve({
