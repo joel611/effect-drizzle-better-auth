@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live as markdown files under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+Issues live as GitHub issues in this repo (`joel611/effect-drizzle-better-auth`), managed via `gh`. See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 
