@@ -2,15 +2,19 @@ import { TaskRepository } from "core";
 import { Db } from "db";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import type { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 
 import { Auth } from "../auth";
 import { AuthAdapter } from "../auth-adapter";
 
-const layer = Layer.mergeAll(TaskRepository.layerNoDeps, Auth.layerNoDeps).pipe(
-  Layer.provideMerge(AuthAdapter.layerNoDeps),
-  Layer.provideMerge(Db.layer)
+// Mirrors apps/server/src/effect-runtime.ts's Layer.mergeAll(TaskRepository.layer, Auth.layer):
+// each of TaskRepository.layer and Auth.layer independently provides Db.layer, so this exercises
+// Effect's layer memoization (same Db.layer reference -> one Db built) instead of assuming it.
+const layer = Layer.mergeAll(
+  TaskRepository.layer,
+  Auth.layer,
+  AuthAdapter.layer,
+  Db.layer
 );
 
 describe("Db and AuthAdapter share one pg.Pool", () => {
@@ -32,11 +36,7 @@ describe("Db and AuthAdapter share one pg.Pool", () => {
     });
 
     const { adapterPool, dbPool } = await Effect.runPromise(
-      program.pipe(Effect.provide(layer)) as Effect.Effect<
-        { adapterPool: Pool | null; dbPool: Pool },
-        unknown,
-        never
-      >
+      program.pipe(Effect.provide(layer))
     );
 
     expect(adapterPool).not.toBeNull();
