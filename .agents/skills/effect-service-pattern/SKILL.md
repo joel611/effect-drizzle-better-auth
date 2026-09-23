@@ -1,6 +1,6 @@
 ---
 name: effect-service-pattern
-description: Effect v4 Context.Service pattern this repo uses for Postgres-backed DI — Db/Auth/repository layers, one shared pg.Pool, static layer/layerNoDeps/layerMemory fields, tagged errors, three-tier testing. Use when adding a new service that reads or writes Postgres, wiring a new Drizzle schema, adding a Better Auth adapter, or writing tests for a layer that touches the database.
+description: Effect v4 Context.Service pattern this repo uses for Postgres-backed DI — Db/Auth/repository layers, one shared pg.Pool, static layer/layerNoDeps fields, tagged errors, three-tier testing. Use when adding a new service that reads or writes Postgres, wiring a new Drizzle schema, adding a Better Auth adapter, or writing tests for a layer that touches the database.
 ---
 
 # Effect v4 + Drizzle + Better Auth service pattern
@@ -14,7 +14,7 @@ How this repo wires Postgres-backed services (`Db`, `Auth`, `TaskRepository`) wi
 - Static layer fields per service class:
   - `layer` — fully wired, deps provided (`Layer.provide(Db.layer)`).
   - `layerNoDeps` — deps left unprovided, for callers assembling their own graph (see `apps/server/src/effect-runtime.ts`'s `Layer.mergeAll(TaskRepository.layer, Auth.layer)`).
-  - `layerMemory` (`Auth` only) — swaps Postgres for an in-memory adapter, for fast unit tests.
+- Test-only layers (e.g. an in-memory `Auth` layer) don't live as static fields on the service class — build them in the test file (or a shared test-runtime file if more than one test file needs the same one) from the class's exported `build*` function, so production code doesn't carry test doubles.
 - Layer memoization is what shares the pool: when two services both `Layer.provide(Db.layer)` and get combined with `Layer.mergeAll`, Effect resolves `Db.layer` once, not twice. Combine service layers with `Layer.mergeAll`, not by giving each its own copy of `Db.layer` — a separate copy breaks the sharing.
 - Secrets go through `Config.Redacted("NAME")` + `Redacted.value(...)` (see `auth.ts`'s `BETTER_AUTH_SECRET`), not raw `process.env`.
 
@@ -41,9 +41,13 @@ How this repo wires Postgres-backed services (`Db`, `Auth`, `TaskRepository`) wi
 
 Follow the three-tier split used for `Auth` (`packages/core/src/libs/auth/__tests__/`):
 
-1. **Memory-backed unit test** (`auth.test.ts`) — run against a fake/in-memory layer (`layerMemory`) for business logic and tagged-error paths, no real Postgres.
+1. **Memory-backed unit test** (`auth.test.ts`) — build a local `Layer.effect(Auth, buildAuth(memoryAdapter(...), null))` in the test file for business logic and tagged-error paths, no real Postgres. If more than one test file needs the same fake layer, hoist it into a shared test-runtime file instead of duplicating the `Layer.effect(...)` call.
 2. **Postgres-backed integration test** (`auth.postgres.test.ts`) — run against the real `layer`, assert actual round-trips.
 3. **Shared-pool proof test** (`shared-pool.test.ts`) — only when a new service is supposed to share `Db` with an existing one: `Layer.mergeAll` both services' layers plus `Db.layer`, drive real traffic through each, then assert their exposed pool handles (`db.$client`, or a `pool` field the service exposes) are `toBe` the same object. This is what proves memoization; don't just assume it.
+
+## Reference: naming and layer placement
+
+See [`references/convention-patterns.md`](references/convention-patterns.md) for: why layers are never named `XLive`, why test-only layers live next to their test file (or a shared `effect-test-runtime.ts`) instead of on the service class, and why runtime orchestration (`Layer.mergeAll`) belongs in each consumer app's own `effect-runtime.ts`, not in the service itself.
 
 ## Reference: where the rationale lives
 

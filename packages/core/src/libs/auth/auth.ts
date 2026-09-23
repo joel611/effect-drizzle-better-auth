@@ -1,7 +1,6 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
 import { betterAuth } from "better-auth";
 import type { BetterAuthOptions } from "better-auth";
-import { memoryAdapter } from "better-auth/adapters/memory";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -13,7 +12,7 @@ import { Db } from "../db";
 import { AuthError } from "./auth-error";
 import * as authSchema from "./auth-schema";
 
-type AuthDatabase = NonNullable<BetterAuthOptions["database"]>;
+export type AuthDatabase = NonNullable<BetterAuthOptions["database"]>;
 
 export const authOptions = {
   emailAndPassword: { enabled: true },
@@ -25,8 +24,8 @@ const attempt = <A>(run: () => Promise<A>) =>
     try: run,
   });
 
-const build = (database: AuthDatabase, pool: Pool | null) =>
-  Effect.gen(function* buildAuth() {
+export const buildAuth = (database: AuthDatabase, pool: Pool | null) =>
+  Effect.gen(function* build() {
     const secret = yield* Config.Redacted("BETTER_AUTH_SECRET");
 
     const instance = betterAuth({
@@ -50,7 +49,7 @@ const build = (database: AuthDatabase, pool: Pool | null) =>
 export class Auth extends Context.Service<Auth>()("Auth", {
   make: Effect.gen(function* make() {
     const db = yield* Db;
-    return yield* build(
+    return yield* buildAuth(
       drizzleAdapter(db, { provider: "pg", schema: authSchema }),
       db.$client
     );
@@ -58,11 +57,4 @@ export class Auth extends Context.Service<Auth>()("Auth", {
 }) {
   static readonly layerNoDeps = Layer.effect(this, this.make);
   static readonly layer = this.layerNoDeps.pipe(Layer.provide(Db.layer));
-  static readonly layerMemory = Layer.effect(
-    this,
-    build(
-      memoryAdapter({ account: [], session: [], user: [], verification: [] }),
-      null
-    )
-  );
 }
