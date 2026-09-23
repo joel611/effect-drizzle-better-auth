@@ -29,15 +29,17 @@ import { betterAuth } from "better-auth";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
+import { sharedAuthOptions } from "./src/auth-shared-options";
+
 const db = drizzle({
   client: new Pool({ connectionString: "postgres://unused/unused" }),
 });
 
 export const auth = betterAuth({
+  ...sharedAuthOptions,
   baseURL: "http://localhost:3000",
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
-  emailAndPassword: { enabled: true },
   secret: "cli-only-placeholder-not-used-at-runtime",
 });

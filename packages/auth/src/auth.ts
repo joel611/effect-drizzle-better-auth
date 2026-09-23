@@ -12,6 +12,7 @@ import type { Pool } from "pg";
 
 import { AuthError } from "./auth-error";
 import * as authSchema from "./auth-schema";
+import { sharedAuthOptions } from "./auth-shared-options";
 
 type AuthDatabase = NonNullable<BetterAuthOptions["database"]>;
 
@@ -27,9 +28,9 @@ const build = (database: AuthDatabase, pool: Pool | null) =>
     const baseURL = yield* Config.String("BETTER_AUTH_URL");
 
     const instance = betterAuth({
+      ...sharedAuthOptions,
       baseURL,
       database,
-      emailAndPassword: { enabled: true },
       secret: Redacted.value(secret),
     });
 
