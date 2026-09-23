@@ -12,9 +12,12 @@ import type { Pool } from "pg";
 
 import { AuthError } from "./auth-error";
 import * as authSchema from "./auth-schema";
-import { sharedAuthOptions } from "./auth-shared-options";
 
 type AuthDatabase = NonNullable<BetterAuthOptions["database"]>;
+
+export const authOptions = {
+  emailAndPassword: { enabled: true },
+} satisfies Partial<BetterAuthOptions>;
 
 const attempt = <A>(run: () => Promise<A>) =>
   Effect.tryPromise({
@@ -25,11 +28,9 @@ const attempt = <A>(run: () => Promise<A>) =>
 const build = (database: AuthDatabase, pool: Pool | null) =>
   Effect.gen(function* buildAuth() {
     const secret = yield* Config.Redacted("BETTER_AUTH_SECRET");
-    const baseURL = yield* Config.String("BETTER_AUTH_URL");
 
     const instance = betterAuth({
-      ...sharedAuthOptions,
-      baseURL,
+      ...authOptions,
       database,
       secret: Redacted.value(secret),
     });
