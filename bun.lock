@@ -20,7 +20,6 @@
       "name": "server",
       "version": "0.0.0",
       "dependencies": {
-        "auth": "workspace:*",
         "core": "workspace:*",
         "effect": "catalog:",
       },
@@ -28,46 +27,14 @@
         "@types/bun": "catalog:",
         "@typescript/native-preview": "catalog:",
         "typescript": "catalog:",
-      },
-    },
-    "packages/auth": {
-      "name": "auth",
-      "version": "0.0.0",
-      "dependencies": {
-        "@better-auth/drizzle-adapter": "^1.7.5",
-        "better-auth": "1.7.5",
-        "core": "workspace:*",
-        "db": "workspace:*",
-        "drizzle-orm": "catalog:",
-        "effect": "catalog:",
-      },
-      "devDependencies": {
-        "@types/bun": "catalog:",
-        "@types/pg": "catalog:",
-        "@typescript/native-preview": "catalog:",
-        "pg": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:",
       },
     },
     "packages/core": {
       "name": "core",
       "version": "0.0.0",
       "dependencies": {
-        "db": "workspace:*",
-        "effect": "catalog:",
-      },
-      "devDependencies": {
-        "@types/bun": "catalog:",
-        "@typescript/native-preview": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:",
-      },
-    },
-    "packages/db": {
-      "name": "db",
-      "version": "0.0.0",
-      "dependencies": {
+        "@better-auth/drizzle-adapter": "1.7.5",
+        "better-auth": "1.7.5",
         "drizzle-orm": "catalog:",
         "effect": "catalog:",
         "pg": "catalog:",
@@ -79,9 +46,6 @@
         "drizzle-kit": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
-      },
-      "peerDependencies": {
-        "auth": "workspace:*",
       },
     },
   },
@@ -413,8 +377,6 @@
 
     "assertion-error": ["assertion-error@2.0.1", "", {}, "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA=="],
 
-    "auth": ["auth@workspace:packages/auth"],
-
     "better-auth": ["better-auth@1.7.5", "", { "dependencies": { "@better-auth/core": "1.7.5", "@better-auth/drizzle-adapter": "1.7.5", "@better-auth/kysely-adapter": "1.7.5", "@better-auth/memory-adapter": "1.7.5", "@better-auth/mongo-adapter": "1.7.5", "@better-auth/prisma-adapter": "1.7.5", "@better-auth/telemetry": "1.7.5", "@better-auth/utils": "0.4.2", "@better-fetch/fetch": "1.3.2", "@noble/ciphers": "^2.2.0", "@noble/hashes": "^2.2.0", "better-call": "1.4.0", "defu": "^6.1.4", "jose": "^6.2.3", "kysely": "^0.28.17 || ^0.29.0", "nanostores": "^1.3.0", "zod": "^4.5.4" }, "peerDependencies": { "@lynx-js/react": "*", "@prisma/client": "^5.0.0 || ^6.0.0 || ^7.0.0", "@sveltejs/kit": "^2.0.0", "@tanstack/react-start": "^1.0.0", "@tanstack/solid-start": "^1.0.0", "drizzle-kit": ">=0.31.4 || >=1.0.0-beta.1", "drizzle-orm": "^0.45.2 || >=1.0.0-rc.1 <2.0.0", "mongodb": "^6.0.0 || ^7.0.0", "mysql2": "^3.0.0", "next": "^14.0.0 || ^15.0.0 || ^16.0.0", "pg": "^8.0.0", "prisma": "^5.0.0 || ^6.0.0 || ^7.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0", "solid-js": "^1.0.0", "svelte": "^4.0.0 || ^5.0.0", "vitest": "^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0", "vue": "^3.0.0" }, "optionalPeers": ["@lynx-js/react", "@prisma/client", "@sveltejs/kit", "@tanstack/react-start", "@tanstack/solid-start", "drizzle-kit", "drizzle-orm", "mongodb", "mysql2", "next", "pg", "prisma", "react", "react-dom", "solid-js", "svelte", "vitest", "vue"] }, "sha512-aKE0Zt2EPTpFvmq4/oATNyG/mAfc6JUqWkW9pzGlrVnzUb0lso7GJ9BPxD6JPhLqYV1a9zOAb0uAz1Q5fm+eHA=="],
 
     "better-call": ["better-call@1.4.0", "", { "dependencies": { "@better-auth/utils": "^0.5.0", "@better-fetch/fetch": "^1.3.1", "rou3": "^0.9.1", "set-cookie-parser": "^3.1.2" }, "peerDependencies": { "zod": "^4.0.0" }, "optionalPeers": ["zod"] }, "sha512-bBKOT4vv1kZLDgxVePdilk/Jwkn+dtRRsmi3DzHcDP+WnswyVl6dR59l2HEeP/0cB+bDoopASAesWDPIdd/zZA=="],
@@ -436,8 +398,6 @@
     "confbox": ["confbox@0.1.8", "", {}, "sha512-RMtmw0iFkeR4YV+fUOSucriAQNb9g8zFR52MWCtl+cCZOFRNL6zeB395vPzFhEjjn4fMxXudmELnl/KF/WrK6w=="],
 
     "core": ["core@workspace:packages/core"],
-
-    "db": ["db@workspace:packages/db"],
 
     "deepmerge": ["deepmerge@4.3.1", "", {}, "sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A=="],
 

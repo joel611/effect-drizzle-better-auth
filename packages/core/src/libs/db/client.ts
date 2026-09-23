@@ -1,9 +1,10 @@
-import { authRelations } from "auth/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { Pool } from "pg";
+
+import { authRelations } from "../auth/auth-schema";
 
 export class Db extends Context.Service<Db>()("Db", {
   make: Effect.acquireRelease(

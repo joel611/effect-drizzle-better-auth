@@ -1,9 +1,9 @@
-import { TaskRepository } from "core";
-import { Db } from "db";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
+import { TaskRepository } from "../../../task-repository";
+import { Db } from "../../db";
 import { Auth } from "../auth";
 
 // Mirrors apps/server/src/effect-runtime.ts's Layer.mergeAll(TaskRepository.layer, Auth.layer):

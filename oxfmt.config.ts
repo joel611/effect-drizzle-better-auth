@@ -5,7 +5,7 @@ export default defineConfig({
   ...ultracite,
   ignorePatterns: [
     ...ultracite.ignorePatterns,
-    "packages/auth/src/auth-schema.ts",
-    "packages/db/drizzle/**",
+    "packages/core/src/libs/auth/auth-schema.ts",
+    "packages/core/drizzle/**",
   ],
 });

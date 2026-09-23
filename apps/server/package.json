@@ -8,7 +8,6 @@
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "auth": "workspace:*",
     "core": "workspace:*",
     "effect": "catalog:"
   },

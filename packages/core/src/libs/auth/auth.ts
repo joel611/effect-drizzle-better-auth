@@ -2,7 +2,6 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
 import { betterAuth } from "better-auth";
 import type { BetterAuthOptions } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
-import { Db } from "db";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -10,6 +9,7 @@ import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import type { Pool } from "pg";
 
+import { Db } from "../db";
 import { AuthError } from "./auth-error";
 import * as authSchema from "./auth-schema";
 
