@@ -11,15 +11,20 @@ export class TaskRepository extends Context.Service<TaskRepository>()(
       const db = yield* Db;
 
       return {
-        create: (title: string) =>
-          Effect.tryPromise(() =>
+        create: Effect.fn("TaskRepository.create")(function* create(
+          title: string
+        ) {
+          const [row] = yield* Effect.tryPromise(() =>
             db.insert(task).values({ title }).returning()
-          ).pipe(
-            Effect.flatMap(([row]) =>
-              row ? Effect.succeed(row) : Effect.die("insert returned no rows")
-            )
-          ),
-        list: () => Effect.tryPromise(() => db.select().from(task)),
+          );
+          if (!row) {
+            return yield* Effect.die("insert returned no rows");
+          }
+          return row;
+        }),
+        list: Effect.fn("TaskRepository.list")(function* list() {
+          return yield* Effect.tryPromise(() => db.select().from(task));
+        }),
       };
     }),
   }
