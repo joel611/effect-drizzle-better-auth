@@ -17,4 +17,9 @@ export const taskSelectSchema = createSelectSchema(task);
 export const taskInsertSchema = createInsertSchema(task, {
   title: (schema) => schema.check(Schema.isMinLength(1)),
 });
-export const taskUpdateSchema = createUpdateSchema(task);
+export const taskUpdateSchema = createUpdateSchema(task, {
+  title: (schema) => schema.check(Schema.isMinLength(1)),
+});
+
+export type TaskInsert = (typeof taskInsertSchema)["Encoded"];
+export type TaskUpdate = (typeof taskUpdateSchema)["Encoded"];
