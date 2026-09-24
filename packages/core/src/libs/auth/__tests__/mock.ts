@@ -3,10 +3,9 @@ import { memoryAdapter } from "better-auth/adapters/memory";
 import * as Layer from "effect/Layer";
 
 import { authOptions } from "../auth";
-import { Auth } from "./layer";
+import { Auth } from "../effect/layer";
 
-// Test-only: in-memory Better Auth for DB-free tests. Kept out of `layer.ts` and the package
-// index so production bundles never import it. `Layer.sync` gives each build fresh storage.
+// In-memory Better Auth for DB-free tests. `Layer.sync` gives each build fresh storage.
 export const authMockLayer = Layer.sync(Auth, () =>
   betterAuth({
     ...authOptions,

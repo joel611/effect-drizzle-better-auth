@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
 import { Auth } from "../effect/layer";
-import { authMockLayer } from "../effect/mock";
+import { authMockLayer } from "./mock";
 
 const credentials = {
   email: "memory@example.com",
