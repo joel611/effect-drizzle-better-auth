@@ -7,8 +7,8 @@ import { Db } from "../../db";
 import { Auth } from "../auth";
 
 // Mirrors apps/server/src/effect-runtime.ts's Layer.mergeAll(TaskRepository.layer, Auth.layer):
-// each of TaskRepository.layer and Auth.layer independently provides Db.layer, so this exercises
-// Effect's layer memoization (same Db.layer reference -> one Db built) instead of assuming it.
+// each of TaskRepository.layer and Auth.layer independently provides Db.layer, which wraps the
+// module-level `db` singleton, so every consumer should see the same pg.Pool.
 const layer = Layer.mergeAll(TaskRepository.layer, Auth.layer, Db.layer);
 
 describe("Db and Auth share one pg.Pool", () => {
