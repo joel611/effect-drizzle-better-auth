@@ -12,3 +12,9 @@ export const db = drizzle({
 });
 
 export type Database = typeof db;
+
+// Query-builder only: `.toSQL()` works, but executing a query throws and `$client` is a
+// placeholder string, hence the `unknown` hop. Use for layers that never hit the DB.
+export const dbMock = drizzle.mock({
+  relations: authRelations,
+}) as unknown as Database;
