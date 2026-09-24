@@ -21,11 +21,15 @@ describe("Db and Auth share one database", () => {
       const db = yield* Db;
 
       yield* repo.create("shared pool proof");
-      const signedUp = yield* auth.signUpEmail({
-        email,
-        name: "Shared Pool User",
-        password: "correct-horse-battery",
-      });
+      const signedUp = yield* Effect.tryPromise(() =>
+        auth.api.signUpEmail({
+          body: {
+            email,
+            name: "Shared Pool User",
+            password: "correct-horse-battery",
+          },
+        })
+      );
       const rows = yield* Effect.tryPromise(() =>
         db.select().from(user).where(eq(user.email, email))
       );

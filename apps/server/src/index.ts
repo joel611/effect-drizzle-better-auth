@@ -12,7 +12,7 @@ const server = Bun.serve({
       runtime.runPromise(
         Effect.gen(function* handle() {
           const auth = yield* Auth;
-          return yield* Effect.promise(() => auth.instance.handler(req));
+          return yield* Effect.promise(() => auth.handler(req));
         })
       ),
     "/tasks": {

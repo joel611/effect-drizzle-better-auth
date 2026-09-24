@@ -13,19 +13,19 @@ describe("Auth over the Postgres-backed drizzleAdapter", () => {
     const email = unique("pg");
     const program = Effect.gen(function* program() {
       const auth = yield* Auth;
-      const signedUp = yield* auth.signUpEmail({
-        email,
-        name: "Pg User",
-        password,
-      });
-      const signedIn = yield* Effect.promise(() =>
-        auth.instance.api.signInEmail({
+      const signedUp = yield* Effect.tryPromise(() =>
+        auth.api.signUpEmail({ body: { email, name: "Pg User", password } })
+      );
+      const signedIn = yield* Effect.tryPromise(() =>
+        auth.api.signInEmail({
           body: { email, password },
           returnHeaders: true,
         })
       );
       const cookie = signedIn.headers.getSetCookie().join("; ");
-      const session = yield* auth.getSession(new Headers({ cookie }));
+      const session = yield* Effect.tryPromise(() =>
+        auth.api.getSession({ headers: new Headers({ cookie }) })
+      );
       return { session, signedIn, signedUp };
     });
 
@@ -38,18 +38,20 @@ describe("Auth over the Postgres-backed drizzleAdapter", () => {
     expect(session?.user.id).toBe(signedUp.user.id);
   });
 
-  it("fails with a tagged AuthError on a wrong password", async () => {
+  it("rejects a wrong password", async () => {
     const email = unique("pg-wrong");
     const program = Effect.gen(function* program() {
       const auth = yield* Auth;
-      yield* auth.signUpEmail({ email, name: "Pg User", password });
-      return yield* auth
-        .signInEmail({ email, password: "nope-nope-nope" })
-        .pipe(Effect.flip);
+      yield* Effect.tryPromise(() =>
+        auth.api.signUpEmail({ body: { email, name: "Pg User", password } })
+      );
+      return yield* Effect.tryPromise(() =>
+        auth.api.signInEmail({ body: { email, password: "nope-nope-nope" } })
+      ).pipe(Effect.flip);
     });
 
     const error = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
-    expect(error._tag).toBe("AuthError");
+    expect(error).toBeDefined();
   });
 });
