@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
-import { Db } from "../client";
+import { Db } from "../effect/layer";
 import { task } from "../schema";
 
 describe("Db layer", () => {
