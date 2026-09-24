@@ -7,7 +7,7 @@ describe("TaskRepository", () => {
   it("creates a task and lists it back", async () => {
     const program = Effect.gen(function* program() {
       const repo = yield* TaskRepository;
-      const created = yield* repo.create("core repo test");
+      const created = yield* repo.create({ title: "core repo test" });
       const all = yield* repo.list();
       return { all, created };
     });
@@ -27,7 +27,7 @@ describe("TaskRepository", () => {
   it("fails with a tagged TaskCreateValidationError on an empty title", async () => {
     const program = Effect.gen(function* program() {
       const repo = yield* TaskRepository;
-      return yield* repo.create("").pipe(Effect.flip);
+      return yield* repo.create({ title: "" }).pipe(Effect.flip);
     });
 
     const error = await Effect.runPromise(

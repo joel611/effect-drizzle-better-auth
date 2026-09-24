@@ -34,7 +34,7 @@ const server = Bun.serve({
         const created = await runtime.runPromise(
           Effect.gen(function* created() {
             const repo = yield* TaskRepository;
-            return yield* repo.create(title);
+            return yield* repo.create({ title });
           })
         );
         return Response.json(created, { status: 201 });

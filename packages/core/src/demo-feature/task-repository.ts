@@ -21,9 +21,9 @@ export class TaskRepository extends Context.Service<TaskRepository>()(
 
       return {
         create: Effect.fn("TaskRepository.create")(function* create(
-          title: string
+          data: (typeof taskInsertSchema)["Encoded"]
         ) {
-          const input = yield* decodeTaskInsert({ title }).pipe(
+          const input = yield* decodeTaskInsert(data).pipe(
             Effect.mapError(
               (error) =>
                 new TaskCreateValidationError({ message: error.message })

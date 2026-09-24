@@ -18,7 +18,7 @@ describe("Db and Auth share one pg.Pool", () => {
       const auth = yield* Auth;
       const db = yield* Db;
 
-      yield* repo.create("shared pool proof");
+      yield* repo.create({ title: "shared pool proof" });
       yield* auth.signUpEmail({
         email: `shared-pool-${crypto.randomUUID()}@example.com`,
         name: "Shared Pool User",
