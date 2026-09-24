@@ -33,7 +33,7 @@ How this repo wires Postgres-backed services (`Db`, `Auth`, `TaskRepository`) wi
      static readonly layer = this.layerNoDeps.pipe(Layer.provide(Db.layer));
    }
    ```
-3. Wrap every Drizzle call site in `Effect.tryPromise` — Drizzle queries here are plain promises, not native Effects (`docs/adr/0003`). If the service has a domain-specific failure mode, define a `Data.TaggedError` for it and route calls through an `attempt` helper (`Effect.tryPromise({ try, catch: (cause) => new XError({ cause }) })`) instead of the bare form — see `auth-error.ts` + `auth.ts`'s `attempt`.
+3. Wrap every Drizzle call site in `Effect.tryPromise` — Drizzle queries here are plain promises, not native Effects (`docs/adr/0003`). Give each feature its own `error.ts` with one `Data.TaggedError` per failure mode (e.g. `SignInError`, `TaskCreateError`), not one catch-all error class. Pass the matching error to `catch` (`Effect.tryPromise({ try, catch: (cause) => new XError({ cause }) })`) instead of the bare form — see `libs/auth/error.ts` + `auth.ts`'s `attempt`, and `demo-feature/error.ts` + `task-repository.ts`.
 4. Export the class (and any error) from the domain's `index.ts`, then re-export from `packages/core/src/index.ts`.
 5. Add it to the `Layer.mergeAll(...)` in `apps/server/src/effect-runtime.ts`. Don't give it a standalone `Db.layer` outside that merge — `mergeAll` is what makes memoization apply.
 

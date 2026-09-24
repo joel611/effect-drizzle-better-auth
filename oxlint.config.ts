@@ -8,4 +8,11 @@ export default defineConfig({
     "packages/core/src/libs/auth/auth-schema.ts",
     "packages/core/drizzle/**",
   ],
+  overrides: [
+    {
+      // Each feature groups its Data.TaggedError classes in one error.ts.
+      files: ["**/error.ts"],
+      rules: { "max-classes-per-file": "off" },
+    },
+  ],
 });

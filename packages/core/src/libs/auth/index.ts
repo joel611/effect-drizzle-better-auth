@@ -1,2 +1,2 @@
 export { Auth } from "./auth";
-export { AuthError } from "./auth-error";
+export { GetSessionError, SignInError, SignUpError } from "./error";

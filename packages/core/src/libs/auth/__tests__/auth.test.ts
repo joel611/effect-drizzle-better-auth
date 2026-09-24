@@ -42,7 +42,7 @@ describe("Auth over an in-memory adapter", () => {
     expect(signedIn.token).toEqual(expect.any(String));
   });
 
-  it("fails with a tagged AuthError on a wrong password", async () => {
+  it("fails with a tagged SignInError on a wrong password", async () => {
     const program = Effect.gen(function* program() {
       const auth = yield* Auth;
       yield* auth.signUpEmail({ ...credentials, email: "wrong@example.com" });
@@ -53,7 +53,7 @@ describe("Auth over an in-memory adapter", () => {
 
     const error = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
-    expect(error._tag).toBe("AuthError");
+    expect(error._tag).toBe("SignInError");
   });
 
   it("fails layer construction when BETTER_AUTH_SECRET is missing", async () => {

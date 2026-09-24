@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
-import { TaskRepository } from "../../../task-repository";
+import { TaskRepository } from "../../../demo-feature";
 import { Db } from "../../db";
 import { Auth } from "../auth";
 

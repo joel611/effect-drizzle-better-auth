@@ -8,6 +8,6 @@ Learning ground for Effect-ts's dependency-injection model, built around a small
 
 **Auth tables**: Better Auth's `user`, `session`, `account` and `verification` tables. Owned by this repo and defined next to **Task** in the database schema.
 
-**Auth**: The Effect service that wraps a Better Auth instance and exposes its operations as Effects with a tagged error.
+**Auth**: The Effect service that wraps a Better Auth instance and exposes its operations as Effects, each failing with its own tagged error (`SignUpError`, `SignInError`, `GetSessionError`).
 
 **AuthAdapter**: The Effect service that gives Better Auth's official `drizzleAdapter` the same `Db` instance the rest of the repo uses, so Better Auth reads and writes through the one shared Postgres pool. Sits between **Db** and **Auth**, so it can be swapped alone (for example for an in-memory adapter in tests).

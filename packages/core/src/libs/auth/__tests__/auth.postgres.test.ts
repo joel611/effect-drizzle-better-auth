@@ -38,7 +38,7 @@ describe("Auth over the Postgres-backed drizzleAdapter", () => {
     expect(session?.user.id).toBe(signedUp.user.id);
   });
 
-  it("fails with a tagged AuthError on a wrong password", async () => {
+  it("fails with a tagged SignInError on a wrong password", async () => {
     const email = unique("pg-wrong");
     const program = Effect.gen(function* program() {
       const auth = yield* Auth;
@@ -50,6 +50,6 @@ describe("Auth over the Postgres-backed drizzleAdapter", () => {
 
     const error = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
-    expect(error._tag).toBe("AuthError");
+    expect(error._tag).toBe("SignInError");
   });
 });

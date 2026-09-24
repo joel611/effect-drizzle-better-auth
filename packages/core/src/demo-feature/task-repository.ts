@@ -2,7 +2,8 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
-import { Db, task } from "./libs/db";
+import { Db, task } from "../libs/db";
+import { TaskCreateError, TaskListError } from "./error";
 
 export class TaskRepository extends Context.Service<TaskRepository>()(
   "TaskRepository",
@@ -14,16 +15,20 @@ export class TaskRepository extends Context.Service<TaskRepository>()(
         create: Effect.fn("TaskRepository.create")(function* create(
           title: string
         ) {
-          const [row] = yield* Effect.tryPromise(() =>
-            db.insert(task).values({ title }).returning()
-          );
+          const [row] = yield* Effect.tryPromise({
+            catch: (cause) => new TaskCreateError({ cause }),
+            try: () => db.insert(task).values({ title }).returning(),
+          });
           if (!row) {
             return yield* Effect.die("insert returned no rows");
           }
           return row;
         }),
         list: Effect.fn("TaskRepository.list")(function* list() {
-          return yield* Effect.tryPromise(() => db.select().from(task));
+          return yield* Effect.tryPromise({
+            catch: (cause) => new TaskListError({ cause }),
+            try: () => db.select().from(task),
+          });
         }),
       };
     }),

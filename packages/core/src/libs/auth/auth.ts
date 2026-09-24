@@ -9,8 +9,8 @@ import * as Redacted from "effect/Redacted";
 import type { Pool } from "pg";
 
 import { Db } from "../db";
-import { AuthError } from "./auth-error";
 import * as authSchema from "./auth-schema";
+import { GetSessionError, SignInError, SignUpError } from "./error";
 
 export type AuthDatabase = NonNullable<BetterAuthOptions["database"]>;
 
@@ -18,11 +18,8 @@ export const authOptions = {
   emailAndPassword: { enabled: true },
 } satisfies Partial<BetterAuthOptions>;
 
-const attempt = <A>(run: () => Promise<A>) =>
-  Effect.tryPromise({
-    catch: (cause) => new AuthError({ cause }),
-    try: run,
-  });
+const attempt = <A, E>(run: () => Promise<A>, onError: (cause: unknown) => E) =>
+  Effect.tryPromise({ catch: onError, try: run });
 
 export const buildAuth = (database: AuthDatabase, pool: Pool | null) =>
   Effect.gen(function* build() {
@@ -36,13 +33,22 @@ export const buildAuth = (database: AuthDatabase, pool: Pool | null) =>
 
     return {
       getSession: (headers: Headers) =>
-        attempt(() => instance.api.getSession({ headers })),
+        attempt(
+          () => instance.api.getSession({ headers }),
+          (cause) => new GetSessionError({ cause })
+        ),
       instance,
       pool,
       signInEmail: (body: { email: string; password: string }) =>
-        attempt(() => instance.api.signInEmail({ body })),
+        attempt(
+          () => instance.api.signInEmail({ body }),
+          (cause) => new SignInError({ cause })
+        ),
       signUpEmail: (body: { email: string; name: string; password: string }) =>
-        attempt(() => instance.api.signUpEmail({ body })),
+        attempt(
+          () => instance.api.signUpEmail({ body }),
+          (cause) => new SignUpError({ cause })
+        ),
     };
   });
 
