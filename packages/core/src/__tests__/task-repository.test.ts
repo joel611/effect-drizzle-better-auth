@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
-import { TaskRepository } from "./task-repository";
+import { TaskRepository } from "../task-repository";
 
 describe("TaskRepository", () => {
   it("creates a task and lists it back", async () => {
