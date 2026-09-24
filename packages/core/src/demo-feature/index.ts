@@ -1,2 +1,6 @@
-export { TaskCreateError, TaskListError } from "./error";
+export {
+  TaskCreateError,
+  TaskCreateValidationError,
+  TaskListError,
+} from "./error";
 export { TaskRepository } from "./task-repository";

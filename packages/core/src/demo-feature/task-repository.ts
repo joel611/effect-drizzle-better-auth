@@ -1,9 +1,17 @@
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Schema from "effect/Schema";
 
-import { Db, task } from "../libs/db";
-import { TaskCreateError, TaskListError } from "./error";
+import { Db } from "../libs/db";
+import { task, taskInsertSchema } from "./db-schema.ts";
+import {
+  TaskCreateError,
+  TaskCreateValidationError,
+  TaskListError,
+} from "./error";
+
+const decodeTaskInsert = Schema.decodeUnknownEffect(taskInsertSchema);
 
 export class TaskRepository extends Context.Service<TaskRepository>()(
   "TaskRepository",
@@ -15,9 +23,15 @@ export class TaskRepository extends Context.Service<TaskRepository>()(
         create: Effect.fn("TaskRepository.create")(function* create(
           title: string
         ) {
+          const input = yield* decodeTaskInsert({ title }).pipe(
+            Effect.mapError(
+              (error) =>
+                new TaskCreateValidationError({ message: error.message })
+            )
+          );
           const [row] = yield* Effect.tryPromise({
             catch: (cause) => new TaskCreateError({ cause }),
-            try: () => db.insert(task).values({ title }).returning(),
+            try: () => db.insert(task).values(input).returning(),
           });
           if (!row) {
             return yield* Effect.die("insert returned no rows");
