@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
-import { Auth } from "../auth";
+import { Auth } from "../effect/layer";
 
 const { layer } = Auth;
 

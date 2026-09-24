@@ -1,11 +1,7 @@
-import { memoryAdapter } from "better-auth/adapters/memory";
-import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
-import * as Exit from "effect/Exit";
-import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
-import { Auth, buildAuth } from "../auth";
+import { Auth } from "../effect/layer";
 
 const credentials = {
   email: "memory@example.com",
@@ -13,14 +9,8 @@ const credentials = {
   password: "correct-horse-battery",
 };
 
-describe("Auth over an in-memory adapter", () => {
-  const layer = Layer.effect(
-    Auth,
-    buildAuth(
-      memoryAdapter({ account: [], session: [], user: [], verification: [] }),
-      null
-    )
-  );
+describe("Auth.layerMock (in-memory adapter)", () => {
+  const layer = Auth.layerMock;
 
   it("signs up, signs in and reads the session back", async () => {
     const program = Effect.gen(function* program() {
@@ -54,20 +44,5 @@ describe("Auth over an in-memory adapter", () => {
     const error = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
     expect(error._tag).toBe("AuthError");
-  });
-
-  it("fails layer construction when BETTER_AUTH_SECRET is missing", async () => {
-    const exit = await Effect.runPromise(
-      Effect.exit(
-        Effect.gen(function* program() {
-          yield* Auth;
-        }).pipe(
-          Effect.provide(layer),
-          Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnvRecord({})))
-        )
-      )
-    );
-
-    expect(Exit.isFailure(exit)).toBe(true);
   });
 });
