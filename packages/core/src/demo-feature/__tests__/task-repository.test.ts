@@ -3,7 +3,9 @@ import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
 import { Db, user } from "../../libs/db";
+import { TaskNotFound } from "../errors";
 import { TaskRepository } from "../task-repository";
+import { TaskId } from "../validation-schema";
 
 const layer = Layer.mergeAll(TaskRepository.layer, Db.layer);
 
@@ -27,5 +29,35 @@ describe("TaskRepository", () => {
 
     expect(created).toMatchObject({ ownerId, title: "core repo test" });
     expect(all.length).toBeGreaterThan(0);
+  });
+
+  it("updates a task", async () => {
+    const ownerId = crypto.randomUUID();
+    const program = Effect.gen(function* program() {
+      const db = yield* Db;
+      const repo = yield* TaskRepository;
+      yield* Effect.tryPromise(() =>
+        db
+          .insert(user)
+          .values({ email: `${ownerId}@example.com`, id: ownerId, name: "Task Owner" }),
+      );
+      const created = yield* repo.create({ ownerId, title: "before" });
+      return yield* repo.update(created.id, { done: true, title: "after" });
+    });
+
+    const updated = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+
+    expect(updated).toMatchObject({ done: true, ownerId, title: "after" });
+  });
+
+  it("fails with TaskNotFound for a missing id", async () => {
+    const program = Effect.gen(function* program() {
+      const repo = yield* TaskRepository;
+      return yield* repo.update(TaskId.make(-1), { done: true });
+    });
+
+    const error = await Effect.runPromise(program.pipe(Effect.flip, Effect.provide(layer)));
+
+    expect(error).toBeInstanceOf(TaskNotFound);
   });
 });

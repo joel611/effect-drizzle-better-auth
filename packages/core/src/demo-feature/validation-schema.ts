@@ -11,13 +11,16 @@ export const TaskId = Schema.Int.pipe(Schema.brand("TaskId"));
 export type TaskId = typeof TaskId.Type;
 
 // id and createdAt are DB-generated, so callers never supply them.
-export const TaskCreate = createInsertSchema(task, {
+export const taskCreateSchema = createInsertSchema(task, {
   title: (s) => s.check(Schema.isNonEmpty()),
 }).mapFields(Struct.omit(["id", "createdAt"]));
-export type TaskCreate = typeof TaskCreate.Type;
+export type TaskCreateInput = typeof taskCreateSchema.Encoded;
 
-export const TaskUpdate = createUpdateSchema(task);
-export type TaskUpdate = typeof TaskUpdate.Type;
+// id, ownerId and createdAt are fixed after insert.
+export const taskUpdateSchema = createUpdateSchema(task, {
+  title: (s) => s.check(Schema.isNonEmpty()),
+}).mapFields(Struct.omit(["id", "ownerId", "createdAt"]));
+export type TaskUpdateInput = typeof taskUpdateSchema.Type;
 
-export const TaskSelect = createSelectSchema(task, { id: TaskId });
-export type TaskSelect = typeof TaskSelect.Type;
+export const taskSelectSchema = createSelectSchema(task, { id: TaskId });
+export type TaskSelectInput = typeof taskSelectSchema.Type;
