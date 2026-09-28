@@ -2,14 +2,20 @@ import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
 import { Db, dbMockLayer } from "../effect/layer";
-import { task } from "../schema";
+import { task, user } from "../schema";
 
 describe("Db layer", () => {
   it("round-trips a row through the DI-provided drizzle instance", async () => {
+    const ownerId = crypto.randomUUID();
     const program = Effect.gen(function* program() {
       const db = yield* Db;
+      yield* Effect.tryPromise(() =>
+        db
+          .insert(user)
+          .values({ email: `${ownerId}@example.com`, id: ownerId, name: "Vitest Owner" }),
+      );
       const [inserted] = yield* Effect.tryPromise(() =>
-        db.insert(task).values({ title: "vitest row" }).returning(),
+        db.insert(task).values({ ownerId, title: "vitest row" }).returning(),
       );
       const rows = yield* Effect.tryPromise(() => db.select().from(task));
       return { inserted, rows };
@@ -17,7 +23,7 @@ describe("Db layer", () => {
 
     const { inserted, rows } = await Effect.runPromise(program.pipe(Effect.provide(Db.layer)));
 
-    expect(inserted).toMatchObject({ done: false, title: "vitest row" });
+    expect(inserted).toMatchObject({ done: false, ownerId, title: "vitest row" });
     expect(rows.length).toBeGreaterThan(0);
   });
 
@@ -29,6 +35,6 @@ describe("Db layer", () => {
 
     const query = await Effect.runPromise(program.pipe(Effect.provide(dbMockLayer)));
 
-    expect(query.sql).toBe('select "created_at", "done", "id", "title" from "task"');
+    expect(query.sql).toBe('select "id", "done", "title", "owner_id", "created_at" from "task"');
   });
 });
