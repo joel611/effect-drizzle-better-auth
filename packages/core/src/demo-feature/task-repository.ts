@@ -2,7 +2,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
-import { Db, task } from "./libs/db";
+import { Db, task } from "../libs/db";
 
 export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepository", {
   make: Effect.gen(function* make() {

@@ -1,2 +1,2 @@
 export { Auth, AuthError } from "./libs/auth";
-export { TaskRepository } from "./task-repository";
+export { TaskRepository } from "./demo-feature/task-repository";
