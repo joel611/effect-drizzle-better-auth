@@ -33,10 +33,20 @@ const server = Bun.serve({
         }
         const created = await runtime.runPromise(
           Effect.gen(function* created() {
+            const auth = yield* Auth;
+            const session = yield* Effect.promise(() =>
+              auth.api.getSession({ headers: req.headers })
+            );
+            if (!session) {
+              return null;
+            }
             const repo = yield* TaskRepository;
-            return yield* repo.create(title);
+            return yield* repo.create(title, session.user.id);
           })
         );
+        if (!created) {
+          return Response.json({ error: "unauthorized" }, { status: 401 });
+        }
         return Response.json(created, { status: 201 });
       },
     },

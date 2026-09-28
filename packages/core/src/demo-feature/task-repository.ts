@@ -9,8 +9,10 @@ export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepos
     const db = yield* Db;
 
     return {
-      create: Effect.fn("TaskRepository.create")(function* create(title: string) {
-        const [row] = yield* Effect.tryPromise(() => db.insert(task).values({ title }).returning());
+      create: Effect.fn("TaskRepository.create")(function* create(title: string, ownerId: string) {
+        const [row] = yield* Effect.tryPromise(() =>
+          db.insert(task).values({ ownerId, title }).returning(),
+        );
         if (!row) {
           return yield* Effect.die("insert returned no rows");
         }

@@ -27,6 +27,7 @@
     "test": "turbo run test",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
+    "db:push": "turbo run db:push",
     "prepare": "husky && effect-tsgo patch --no-typescript --oxlint",
     "check": "ultracite check"
   },

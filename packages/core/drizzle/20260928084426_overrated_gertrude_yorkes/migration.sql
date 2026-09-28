@@ -1,0 +1,2 @@
+ALTER TABLE "task" ADD COLUMN "owner_id" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "task" ADD CONSTRAINT "task_owner_id_user_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "user"("id") ON DELETE CASCADE;

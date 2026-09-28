@@ -20,7 +20,6 @@ describe("Db and Auth share one database", () => {
       const auth = yield* Auth;
       const db = yield* Db;
 
-      yield* repo.create("shared pool proof");
       const signedUp = yield* Effect.tryPromise(() =>
         auth.api.signUpEmail({
           body: {
@@ -30,6 +29,8 @@ describe("Db and Auth share one database", () => {
           },
         }),
       );
+      // The task's FK to user only holds if Auth and Db write to the same database.
+      yield* repo.create("shared pool proof", signedUp.user.id);
       const rows = yield* Effect.tryPromise(() =>
         db.select().from(user).where(eq(user.email, email)),
       );
