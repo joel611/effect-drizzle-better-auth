@@ -14,7 +14,7 @@ export class Auth extends Context.Service<Auth, AuthInstance>()("Auth") {
 
 // In-memory Better Auth for DB-free tests. `Layer.sync` gives each build fresh storage.
 // Standalone named export (not a static on `Auth`) so bundlers can tree-shake it.
-export const authMockLayer = Layer.sync(Auth, () =>
+export const authMockLayer = /* @__PURE__ */ Layer.sync(Auth, () =>
   betterAuth({
     ...authOptions,
     database: memoryAdapter({
@@ -24,5 +24,5 @@ export const authMockLayer = Layer.sync(Auth, () =>
       verification: [],
     }),
     secret: process.env.BETTER_AUTH_SECRET,
-  })
+  }),
 );
