@@ -1,10 +1,8 @@
-import { boolean, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
-
 export { account, session, user, verification } from "../auth/auth-schema";
+export { task } from "../../demo-feature/schema.ts";
 
-export const task = pgTable("task", {
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  done: boolean("done").notNull().default(false),
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-});
+// Relations
+import { taskRelations } from "../../demo-feature/schema.ts";
+import { authRelations } from "../auth/auth-schema";
+
+export const relations = { ...authRelations, ...taskRelations };
