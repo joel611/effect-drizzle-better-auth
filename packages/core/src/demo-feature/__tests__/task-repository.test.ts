@@ -18,7 +18,7 @@ describe("TaskRepository", () => {
           .insert(user)
           .values({ email: `${ownerId}@example.com`, id: ownerId, name: "Task Owner" }),
       );
-      const created = yield* repo.create("core repo test", ownerId);
+      const created = yield* repo.create({ ownerId, title: "core repo test" });
       const all = yield* repo.list();
       return { all, created };
     });

@@ -26,28 +26,31 @@ const server = Bun.serve({
         return Response.json(tasks);
       },
       POST: async (req) => {
-        const body = (await req.json()) as { title?: string };
-        const { title } = body;
-        if (!title) {
-          return Response.json({ error: "title is required" }, { status: 400 });
-        }
-        const created = await runtime.runPromise(
+        // Cast only; TaskRepository.create decodes against TaskCreate.
+        const body = (await req.json()) as { title: string };
+        return runtime.runPromise(
           Effect.gen(function* created() {
             const auth = yield* Auth;
             const session = yield* Effect.promise(() =>
               auth.api.getSession({ headers: req.headers })
             );
             if (!session) {
-              return null;
+              return Response.json({ error: "unauthorized" }, { status: 401 });
             }
             const repo = yield* TaskRepository;
-            return yield* repo.create(title, session.user.id);
-          })
+            const task = yield* repo.create({
+              ownerId: session.user.id,
+              title: body.title,
+            });
+            return Response.json(task, { status: 201 });
+          }).pipe(
+            Effect.catchTag("SchemaError", (schemaError) =>
+              Effect.succeed(
+                Response.json({ error: schemaError.message }, { status: 400 })
+              )
+            )
+          )
         );
-        if (!created) {
-          return Response.json({ error: "unauthorized" }, { status: 401 });
-        }
-        return Response.json(created, { status: 201 });
       },
     },
   },
