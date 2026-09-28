@@ -4,33 +4,24 @@ import * as Layer from "effect/Layer";
 
 import { Db, task } from "./libs/db";
 
-export class TaskRepository extends Context.Service<TaskRepository>()(
-  "TaskRepository",
-  {
-    make: Effect.gen(function* make() {
-      const db = yield* Db;
+export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepository", {
+  make: Effect.gen(function* make() {
+    const db = yield* Db;
 
-      return {
-        create: Effect.fn("TaskRepository.create")(function* create(
-          title: string
-        ) {
-          const [row] = yield* Effect.tryPromise(() =>
-            db.insert(task).values({ title }).returning()
-          );
-          if (!row) {
-            return yield* Effect.die("insert returned no rows");
-          }
-          return row;
-        }),
-        list: Effect.fn("TaskRepository.list")(function* list() {
-          return yield* Effect.tryPromise(() => db.select().from(task));
-        }),
-      };
-    }),
-  }
-) {
+    return {
+      create: Effect.fn("TaskRepository.create")(function* create(title: string) {
+        const [row] = yield* Effect.tryPromise(() => db.insert(task).values({ title }).returning());
+        if (!row) {
+          return yield* Effect.die("insert returned no rows");
+        }
+        return row;
+      }),
+      list: Effect.fn("TaskRepository.list")(function* list() {
+        return yield* Effect.tryPromise(() => db.select().from(task));
+      }),
+    };
+  }),
+}) {
   static readonly layerNoDeps = Layer.effect(this, this.make);
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Db.layer)
-  );
+  static readonly layer = Layer.effect(this, this.make).pipe(Layer.provide(Db.layer));
 }

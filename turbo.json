@@ -1,9 +1,9 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "tasks": {
-    "dev": {
-      "cache": false,
-      "persistent": true
+    "//#check": {},
+    "//#fix": {
+      "cache": false
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]
@@ -11,6 +11,10 @@
     "test": {
       "dependsOn": ["^test"],
       "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
     },
     "db:generate": {
       "cache": false

@@ -1,11 +1,7 @@
-import { memoryAdapter } from "better-auth/adapters/memory";
-import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
-import * as Exit from "effect/Exit";
-import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
-import { Auth, buildAuth } from "../auth";
+import { Auth, authMockLayer } from "../effect/layer";
 
 const credentials = {
   email: "memory@example.com",
@@ -13,28 +9,21 @@ const credentials = {
   password: "correct-horse-battery",
 };
 
-describe("Auth over an in-memory adapter", () => {
-  const layer = Layer.effect(
-    Auth,
-    buildAuth(
-      memoryAdapter({ account: [], session: [], user: [], verification: [] }),
-      null
-    )
-  );
-
-  it("signs up, signs in and reads the session back", async () => {
+describe("authMockLayer (in-memory adapter)", () => {
+  it("signs up and signs in", async () => {
     const program = Effect.gen(function* program() {
       const auth = yield* Auth;
-      const signedUp = yield* auth.signUpEmail(credentials);
-      const signedIn = yield* auth.signInEmail({
-        email: credentials.email,
-        password: credentials.password,
-      });
+      const signedUp = yield* Effect.tryPromise(() => auth.api.signUpEmail({ body: credentials }));
+      const signedIn = yield* Effect.tryPromise(() =>
+        auth.api.signInEmail({
+          body: { email: credentials.email, password: credentials.password },
+        }),
+      );
       return { signedIn, signedUp };
     });
 
     const { signedUp, signedIn } = await Effect.runPromise(
-      program.pipe(Effect.provide(layer))
+      program.pipe(Effect.provide(authMockLayer)),
     );
 
     expect(signedUp.user.email).toBe(credentials.email);
@@ -42,32 +31,23 @@ describe("Auth over an in-memory adapter", () => {
     expect(signedIn.token).toEqual(expect.any(String));
   });
 
-  it("fails with a tagged AuthError on a wrong password", async () => {
+  it("rejects a wrong password", async () => {
     const program = Effect.gen(function* program() {
       const auth = yield* Auth;
-      yield* auth.signUpEmail({ ...credentials, email: "wrong@example.com" });
-      return yield* auth
-        .signInEmail({ email: "wrong@example.com", password: "nope-nope-nope" })
-        .pipe(Effect.flip);
+      yield* Effect.tryPromise(() =>
+        auth.api.signUpEmail({
+          body: { ...credentials, email: "wrong@example.com" },
+        }),
+      );
+      return yield* Effect.tryPromise(() =>
+        auth.api.signInEmail({
+          body: { email: "wrong@example.com", password: "nope-nope-nope" },
+        }),
+      ).pipe(Effect.flip);
     });
 
-    const error = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+    const error = await Effect.runPromise(program.pipe(Effect.provide(authMockLayer)));
 
-    expect(error._tag).toBe("AuthError");
-  });
-
-  it("fails layer construction when BETTER_AUTH_SECRET is missing", async () => {
-    const exit = await Effect.runPromise(
-      Effect.exit(
-        Effect.gen(function* program() {
-          yield* Auth;
-        }).pipe(
-          Effect.provide(layer),
-          Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnvRecord({})))
-        )
-      )
-    );
-
-    expect(Exit.isFailure(exit)).toBe(true);
+    expect(error).toBeDefined();
   });
 });

@@ -27,16 +27,18 @@
     "test": "turbo run test",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
-    "prepare": "husky",
+    "prepare": "husky && effect-tsgo patch --no-typescript --oxlint",
     "check": "ultracite check"
   },
   "devDependencies": {
+    "@effect/tsgo": "^0.46.1",
     "@types/bun": "catalog:",
     "@typescript/native-preview": "catalog:",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0",
+    "oxlint-tsgolint": "^7.0.2003",
     "turbo": "^2.10.13",
     "typescript": "catalog:",
     "ultracite": "7.12.0"

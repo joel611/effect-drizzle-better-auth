@@ -1,6 +1,6 @@
 /**
- * CLI-only Better Auth config. Not used at runtime — `Auth`
- * (src/libs/auth/auth.ts) is the real, Effect-wired service. This file builds the same
+ * CLI-only Better Auth config. Not used at runtime — the `auth` singleton
+ * (src/libs/auth/auth.ts) is the real instance. This file builds the same
  * `@better-auth/drizzle-adapter/relations-v2` adapter over a throwaway
  * `pg.Pool` (never connected — `generate` only inspects the schema shape, it
  * never runs a query) so the Better Auth CLI (`bunx auth@latest generate`)
@@ -17,7 +17,7 @@
  * schema change into a migration.
  *
  * No `schema` option is passed to `drizzleAdapter` here (unlike the runtime
- * `Auth` service in `src/libs/auth/auth.ts`): the CLI loads this file with its own
+ * `auth` singleton in `src/libs/auth/auth.ts`): the CLI loads this file with its own
  * bundled `drizzle-orm`, which doesn't have to match the workspace's pinned
  * rc build, so importing
  * the generated `auth-schema.ts` back into this file risks the same kind of
@@ -33,8 +33,7 @@ import { authOptions } from "./src/libs/auth/auth";
 
 const db = drizzle({
   client: new Pool({
-    connectionString:
-      process.env.DATABASE_URL ?? "postgres://app:app@localhost:5477/app",
+    connectionString: process.env.DATABASE_URL ?? "postgres://app:app@localhost:5477/app",
   }),
 });
 

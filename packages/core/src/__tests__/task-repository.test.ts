@@ -17,7 +17,7 @@ describe("TaskRepository", () => {
         { created: { title: string }; all: unknown[] },
         unknown,
         never
-      >
+      >,
     );
 
     expect(created.title).toBe("core repo test");
