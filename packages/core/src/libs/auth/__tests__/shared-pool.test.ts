@@ -28,18 +28,16 @@ describe("Db and Auth share one database", () => {
             name: "Shared Pool User",
             password: "correct-horse-battery",
           },
-        })
+        }),
       );
       const rows = yield* Effect.tryPromise(() =>
-        db.select().from(user).where(eq(user.email, email))
+        db.select().from(user).where(eq(user.email, email)),
       );
 
       return { rows, signedUp };
     });
 
-    const { rows, signedUp } = await Effect.runPromise(
-      program.pipe(Effect.provide(layer))
-    );
+    const { rows, signedUp } = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.id).toBe(signedUp.user.id);

@@ -5,8 +5,7 @@ import { authRelations } from "../auth/auth-schema";
 
 export const db = drizzle({
   client: new Pool({
-    connectionString:
-      process.env.DATABASE_URL ?? "postgres://app:app@localhost:5477/app",
+    connectionString: process.env.DATABASE_URL ?? "postgres://app:app@localhost:5477/app",
   }),
   relations: authRelations,
 });

@@ -13,19 +13,17 @@ describe("authMockLayer (in-memory adapter)", () => {
   it("signs up and signs in", async () => {
     const program = Effect.gen(function* program() {
       const auth = yield* Auth;
-      const signedUp = yield* Effect.tryPromise(() =>
-        auth.api.signUpEmail({ body: credentials })
-      );
+      const signedUp = yield* Effect.tryPromise(() => auth.api.signUpEmail({ body: credentials }));
       const signedIn = yield* Effect.tryPromise(() =>
         auth.api.signInEmail({
           body: { email: credentials.email, password: credentials.password },
-        })
+        }),
       );
       return { signedIn, signedUp };
     });
 
     const { signedUp, signedIn } = await Effect.runPromise(
-      program.pipe(Effect.provide(authMockLayer))
+      program.pipe(Effect.provide(authMockLayer)),
     );
 
     expect(signedUp.user.email).toBe(credentials.email);
@@ -39,18 +37,16 @@ describe("authMockLayer (in-memory adapter)", () => {
       yield* Effect.tryPromise(() =>
         auth.api.signUpEmail({
           body: { ...credentials, email: "wrong@example.com" },
-        })
+        }),
       );
       return yield* Effect.tryPromise(() =>
         auth.api.signInEmail({
           body: { email: "wrong@example.com", password: "nope-nope-nope" },
-        })
+        }),
       ).pipe(Effect.flip);
     });
 
-    const error = await Effect.runPromise(
-      program.pipe(Effect.provide(authMockLayer))
-    );
+    const error = await Effect.runPromise(program.pipe(Effect.provide(authMockLayer)));
 
     expect(error).toBeDefined();
   });
