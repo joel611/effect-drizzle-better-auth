@@ -8,11 +8,11 @@ import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { Hono } from "hono";
 
+import type { AppEnv } from "../app";
 import { runtime } from "../effect-runtime";
 import { requireAuth } from "../middleware/auth-middleware";
-import type { AuthEnv } from "../middleware/auth-middleware";
 
-export const taskRoutes = new Hono<AuthEnv>();
+export const taskRoutes = new Hono<AppEnv>();
 
 taskRoutes.get("/", async () => {
   const tasks = await runtime.runPromise(
