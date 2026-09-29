@@ -13,7 +13,7 @@ How this repo wires Postgres-backed services (`Db`, `Auth`, `TaskRepository`) wi
 - Exactly one shared `pg.Pool` exists in the whole app. `Db` (`packages/core/src/libs/db/client.ts`) owns it, built once via `Effect.acquireRelease` and exposed through `Layer.effect`. Anything needing Postgres goes through `Db` — never construct a second `Pool`.
 - Static layer fields per service class:
   - `layer` — fully wired, deps provided (`Layer.provide(Db.layer)`).
-  - `layerNoDeps` — deps left unprovided, for callers assembling their own graph (see `apps/server/src/effect-runtime.ts`'s `Layer.mergeAll(TaskRepository.layer, Auth.layer)`).
+  - `layerNoDeps` — deps left unprovided, for callers assembling their own graph (see `apps/api/src/effect-runtime.ts`'s `Layer.mergeAll(TaskRepository.layer, Auth.layer)`).
 - Test-only layers (e.g. an in-memory `Auth` layer) don't live as static fields on the service class — build them in the test file (or a shared test-runtime file if more than one test file needs the same one) from the class's exported `build*` function, so production code doesn't carry test doubles.
 - Layer memoization is what shares the pool: when two services both `Layer.provide(Db.layer)` and get combined with `Layer.mergeAll`, Effect resolves `Db.layer` once, not twice. Combine service layers with `Layer.mergeAll`, not by giving each its own copy of `Db.layer` — a separate copy breaks the sharing.
 - Secrets go through `Config.Redacted("NAME")` + `Redacted.value(...)` (see `auth.ts`'s `BETTER_AUTH_SECRET`), not raw `process.env`.
@@ -35,7 +35,7 @@ How this repo wires Postgres-backed services (`Db`, `Auth`, `TaskRepository`) wi
    ```
 3. Wrap every Drizzle call site in `Effect.tryPromise` — Drizzle queries here are plain promises, not native Effects (`docs/adr/0003`). If the service has a domain-specific failure mode, define a `Data.TaggedError` for it and route calls through an `attempt` helper (`Effect.tryPromise({ try, catch: (cause) => new XError({ cause }) })`) instead of the bare form — see `auth-error.ts` + `auth.ts`'s `attempt`.
 4. Export the class (and any error) from the domain's `index.ts`, then re-export from `packages/core/src/index.ts`.
-5. Add it to the `Layer.mergeAll(...)` in `apps/server/src/effect-runtime.ts`. Don't give it a standalone `Db.layer` outside that merge — `mergeAll` is what makes memoization apply.
+5. Add it to the `Layer.mergeAll(...)` in `apps/api/src/effect-runtime.ts`. Don't give it a standalone `Db.layer` outside that merge — `mergeAll` is what makes memoization apply.
 
 ## Steps: test a service that touches Postgres
 
@@ -55,4 +55,4 @@ Don't re-derive _why_ — read the ADR, and add a new numbered one if you change
 
 - `docs/adr/0003-drop-effect-sql-pg-for-shared-postgres-pool.md` — why `Db` is plain `pg.Pool` + `drizzle-orm/node-postgres` instead of `@effect/sql-pg`, and why Better Auth's adapter needs a promise-based Drizzle instance.
 - `docs/adr/0002-pin-drizzle-rc5-dist-tag-drop-sql-drizzle-bridge.md` — why `drizzle-orm`/`drizzle-kit`/`effect` are pinned to specific rc builds. Don't bump the catalog versions without re-reading this.
-- `docs/adr/0001-pg-based-postgres-client-over-bun-sql.md` — why `pg` over `Bun.sql` despite this repo's Bun-first default.
+- `docs/adr/0001-pg-based-postgres-client-over-bun-sql.md` — why `pg` over `Bun.sql` (moot now that Node is the runtime, but the record stays).

@@ -23,7 +23,7 @@
     "pg": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "@typescript/native-preview": "catalog:",
     "drizzle-kit": "catalog:",

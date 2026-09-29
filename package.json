@@ -8,7 +8,7 @@
     ],
     "catalog": {
       "typescript": "7.0.2",
-      "@types/bun": "latest",
+      "@types/node": "^22.20.4",
       "@typescript/native-preview": "latest",
       "effect": "4.0.0-rc.115",
       "drizzle-orm": "1.0.0-rc.5-5935859",
@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@effect/tsgo": "^0.46.1",
-    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",

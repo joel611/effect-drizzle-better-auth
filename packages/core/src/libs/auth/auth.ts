@@ -16,3 +16,8 @@ export const auth = betterAuth({
 });
 
 export type AuthInstance = typeof auth;
+
+export interface AuthType {
+  user: typeof auth.$Infer.Session.user | null;
+  session: typeof auth.$Infer.Session.session | null;
+}

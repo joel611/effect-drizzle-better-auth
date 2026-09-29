@@ -1,104 +1,37 @@
-Default to using Bun instead of Node.js.
+Node.js is the only runtime. Bun is the package manager and bundler, for developer experience only. Never run app or test code on the Bun runtime.
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+## Bun: package manager and bundler only
 
-## APIs
+- Use `bun install` / `bun add` instead of `npm install`, `yarn` or `pnpm`.
+- Use `bun run <script>` to run package scripts, and `bunx <package>` instead of `npx`.
+- Use `bun build --target=node` to bundle apps. Run the output with `node`.
+- Don't use Bun runtime APIs: no `Bun.serve`, `Bun.file`, `Bun.sql`, `Bun.redis`, `Bun.$`, `bun:sqlite` or `bun:test`. Use Node built-ins (`node:fs`, `node:child_process`, ...) or npm packages.
+- Don't run code with `bun <file>` or `bun --hot`. Use `node`.
+- Types come from `@types/node`, not `@types/bun`.
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+## Runtime: Node.js
+
+- `.env` is not loaded automatically. Pass it with `node --env-file-if-exists=<path>`.
+- Postgres goes through `pg` (see `docs/adr/`).
+
+## API: Hono
+
+`apps/api` is a Hono app served on Node by `@hono/node-server`. Don't use `express`.
+
+- In `apps/api`, `bun run build` bundles `src/index.ts` (including workspace packages such as `core`) to `dist/` with `bun build --target=node`.
+- `bun run start` runs `node dist/index.js`.
+- `bun run dev` rebuilds with `bun build --watch` and restarts with `node --watch`.
+
+```ts
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+
+const app = new Hono().basePath("/api");
+app.get("/tasks", (c) => c.json([]));
+
+serve({ fetch: app.fetch, port: 3000 });
+```
 
 ## Testing
 
-Use `bun test` to run tests, except `packages/core`, `packages/db` and `packages/auth`, which use `vitest` by explicit project choice.
-
-```ts#index.test.ts
-import { test, expect } from "bun:test";
-
-test("hello world", () => {
-  expect(1).toBe(1);
-});
-```
-
-## Frontend
-
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
-
-Server:
-
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
-
-// import .css files directly and it works
-import './index.css';
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+Use `vitest` for tests (it runs on Node). Don't use `bun test`.

@@ -25,4 +25,4 @@ Mock/in-memory layers are not static fields on the service class — they live n
 
 ## One `effect-runtime.ts` per consumer app
 
-Each consumer app (e.g. `apps/server`) defines its own `effect-runtime.ts` that owns runtime orchestration — merging every service layer it needs (`Layer.mergeAll(...)`) and providing shared dependency layers. Services themselves never assemble a full app runtime; they only expose `layer`/`layerNoDeps`.
+Each consumer app (e.g. `apps/api`) defines its own `effect-runtime.ts` that owns runtime orchestration — merging every service layer it needs (`Layer.mergeAll(...)`) and providing shared dependency layers. Services themselves never assemble a full app runtime; they only expose `layer`/`layerNoDeps`.

@@ -7,7 +7,7 @@ import { TaskRepository } from "../../../demo-feature/task-repository";
 import { Db, user } from "../../db";
 import { Auth } from "../effect/layer";
 
-// Mirrors apps/server/src/effect-runtime.ts's Layer.mergeAll(TaskRepository.layer, Auth.layer).
+// Mirrors apps/api/src/effect-runtime.ts's Layer.mergeAll(TaskRepository.layer, Auth.layer).
 // The `auth` singleton is built on the `db` singleton, so a user written through Auth must be
 // readable through Db.
 const layer = Layer.mergeAll(TaskRepository.layer, Auth.layer, Db.layer);

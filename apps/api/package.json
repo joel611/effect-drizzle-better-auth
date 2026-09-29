@@ -1,0 +1,23 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/index.ts --target=node --outdir=dist",
+    "start": "node --env-file-if-exists=../../.env dist/index.js",
+    "dev": "bun run build && (bun build ./src/index.ts --target=node --outdir=dist --watch & trap \"kill $!\" EXIT INT TERM; node --watch --env-file-if-exists=../../.env dist/index.js)",
+    "typecheck": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.2",
+    "core": "workspace:*",
+    "effect": "catalog:",
+    "hono": "^4.13.10"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:"
+  }
+}
