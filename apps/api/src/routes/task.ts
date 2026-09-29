@@ -63,7 +63,7 @@ taskRoutes.patch("/:id", requireAuth, async (c) => {
 
   return runtime.runPromise(
     Effect.gen(function* updated() {
-      // Parse untrusted input at the HTTP boundary, same as POST /tasks.
+      // Parse untrusted input at the HTTP boundary, same as POST /api/tasks.
       const id = yield* Schema.decodeUnknownEffect(TaskId)(
         Number(c.req.param("id"))
       );

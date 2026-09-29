@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 
-import { authRoutes } from "./auth";
+import { authRoutes } from "./routes/auth";
 import { taskRoutes } from "./routes/task";
 
 export const app = new Hono()
-  .route("/api/auth", authRoutes)
+  .basePath("/api")
+  .route("/auth", authRoutes)
   .route("/tasks", taskRoutes);

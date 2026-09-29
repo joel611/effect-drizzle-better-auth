@@ -26,7 +26,7 @@ Node.js is the only runtime. Bun is the package manager and bundler, for develop
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 
-const app = new Hono();
+const app = new Hono().basePath("/api");
 app.get("/tasks", (c) => c.json([]));
 
 serve({ fetch: app.fetch, port: 3000 });
