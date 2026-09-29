@@ -9,8 +9,8 @@ import * as Schema from "effect/Schema";
 import { Hono } from "hono";
 
 import { runtime } from "../effect-runtime";
-import { requireAuth } from "../middleware/auth";
-import type { AuthEnv } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth-middleware";
+import type { AuthEnv } from "../middleware/auth-middleware";
 
 export const taskRoutes = new Hono<AuthEnv>();
 
