@@ -27,7 +27,7 @@ Learn Effect-ts's dependency-injection model by building small, real service aro
   - `src/task-repository.ts` — domain services built on top of `src/libs/db` (e.g. `TaskRepository`)
 - `apps/api` — Hono app on Node (`@hono/node-server`), bundled by `bun build --target=node`, wiring services into HTTP routes (tasks, and Better Auth under `/api/auth/*`)
   - `src/index.ts` starts the server; `src/app.ts` mounts the route groups under `/api`
-  - `src/routes/auth.ts` hands `/api/auth/*` to Better Auth; `src/middleware/auth-middleware.ts` (`requireAuth`) rejects requests without a session and sets `c.get("user")`
+  - `src/routes/auth.ts` hands `/api/auth/*` to Better Auth; `src/middleware/auth-middleware.ts` has `authMiddleware` (applied to every route; sets `c.get("user")`/`c.get("session")`, `null` when anonymous) and `requireAuth` (per route; 401 without a session)
   - `src/routes/task.ts` — `/api/tasks` routes
 
 ## Getting started
