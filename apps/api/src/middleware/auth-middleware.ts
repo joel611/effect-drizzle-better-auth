@@ -4,12 +4,12 @@ import * as Effect from "effect/Effect";
 import { createMiddleware } from "hono/factory";
 
 import type { AppEnv } from "../app";
-import { runtime } from "../effect-runtime";
+import { run } from "../effect-runtime";
 
 // Resolves the Better Auth session for every request. Anonymous requests get
 // `user` and `session` set to `null`; use `requireAuth` to reject them.
 export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
-  const session = await runtime.runPromise(
+  const session = await run(
     Effect.gen(function* session() {
       const auth = yield* Auth;
       return yield* Effect.promise(() =>
