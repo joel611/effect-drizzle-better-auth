@@ -9,27 +9,33 @@ import * as Schema from "effect/Schema";
 import { Hono } from "hono";
 
 import type { AppEnv } from "../app";
-import { runtime } from "../effect-runtime";
+import { runHandler } from "../effect-runtime";
 import { requireAuth } from "../middleware/auth-middleware";
 
 export const taskRoutes = new Hono<AppEnv>();
 
-taskRoutes.get("/", async () => {
-  const tasks = await runtime.runPromise(
+taskRoutes.get("/", () =>
+  runHandler(
     Effect.gen(function* tasks() {
       const repo = yield* TaskRepository;
-      return yield* repo.list();
-    })
-  );
-  return Response.json(tasks);
-});
+      return Response.json(yield* repo.list());
+    }).pipe(
+      Effect.catchTags({
+        UnknownError: () =>
+          Effect.succeed(
+            Response.json({ error: "tasks not listed" }, { status: 500 })
+          ),
+      })
+    )
+  )
+);
 
 taskRoutes.post("/", requireAuth, async (c) => {
   // Cast only; taskCreateSchema decode below validates.
   const body = (await c.req.json()) as { title?: unknown };
   const user = c.get("user");
 
-  return runtime.runPromise(
+  return runHandler(
     Effect.gen(function* created() {
       // Parse untrusted input at the HTTP boundary: the handler owns the
       // 400 mapping, and TaskRepository.create receives typed data and
@@ -61,7 +67,7 @@ taskRoutes.patch("/:id", requireAuth, async (c) => {
   const body: unknown = await c.req.json();
   const user = c.get("user");
 
-  return runtime.runPromise(
+  return runHandler(
     Effect.gen(function* updated() {
       // Parse untrusted input at the HTTP boundary, same as POST /api/tasks.
       const id = yield* Schema.decodeUnknownEffect(TaskId)(
@@ -84,6 +90,10 @@ taskRoutes.patch("/:id", requireAuth, async (c) => {
         TaskNotFound: () =>
           Effect.succeed(
             Response.json({ error: "task not found" }, { status: 404 })
+          ),
+        UnknownError: () =>
+          Effect.succeed(
+            Response.json({ error: "task not updated" }, { status: 500 })
           ),
       })
     )
