@@ -10,7 +10,7 @@ export const runtime = ManagedRuntime.make(
 // Runs an effect for an HTTP handler. The error channel must be `never`, so a
 // typed error left out of `catchTags` fails the typecheck instead of turning
 // into a 500 at runtime.
-export const runHandler = <A>(
+export const run = <A>(
   effect: Effect.Effect<
     A,
     never,

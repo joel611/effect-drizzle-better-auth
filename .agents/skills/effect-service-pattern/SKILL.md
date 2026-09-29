@@ -49,6 +49,10 @@ Follow the three-tier split used for `Auth` (`packages/core/src/libs/auth/__test
 
 See [`references/convention-patterns.md`](references/convention-patterns.md) for: why layers are never named `XLive`, why test-only layers live next to their test file (or a shared `effect-test-runtime.ts`) instead of on the service class, and why runtime orchestration (`Layer.mergeAll`) belongs in each consumer app's own `effect-runtime.ts`, not in the service itself.
 
+## Reference: running effects in API handlers
+
+See [`references/api-runtime.md`](references/api-runtime.md) for why handlers call `run` (which requires `E = never`) instead of `runtime.runPromise`, how that turns a tag missing from `catchTags` into a compile error, and why bare `Effect.tryPromise` surfaces as `UnknownError`.
+
 ## Reference: where the rationale lives
 
 Don't re-derive _why_ — read the ADR, and add a new numbered one if you change any of this:

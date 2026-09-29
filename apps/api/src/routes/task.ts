@@ -9,13 +9,13 @@ import * as Schema from "effect/Schema";
 import { Hono } from "hono";
 
 import type { AppEnv } from "../app";
-import { runHandler } from "../effect-runtime";
+import { run } from "../effect-runtime";
 import { requireAuth } from "../middleware/auth-middleware";
 
 export const taskRoutes = new Hono<AppEnv>();
 
 taskRoutes.get("/", () =>
-  runHandler(
+  run(
     Effect.gen(function* tasks() {
       const repo = yield* TaskRepository;
       return Response.json(yield* repo.list());
@@ -35,7 +35,7 @@ taskRoutes.post("/", requireAuth, async (c) => {
   const body = (await c.req.json()) as { title?: unknown };
   const user = c.get("user");
 
-  return runHandler(
+  return run(
     Effect.gen(function* created() {
       // Parse untrusted input at the HTTP boundary: the handler owns the
       // 400 mapping, and TaskRepository.create receives typed data and
@@ -67,7 +67,7 @@ taskRoutes.patch("/:id", requireAuth, async (c) => {
   const body: unknown = await c.req.json();
   const user = c.get("user");
 
-  return runHandler(
+  return run(
     Effect.gen(function* updated() {
       // Parse untrusted input at the HTTP boundary, same as POST /api/tasks.
       const id = yield* Schema.decodeUnknownEffect(TaskId)(
