@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bun build ./src/index.ts --target=node --outdir=dist",
     "start": "node --env-file-if-exists=../../.env dist/index.js",
-    "dev": "bun run build && (bun build ./src/index.ts --target=node --outdir=dist --watch & node --watch --env-file-if-exists=../../.env dist/index.js)",
+    "dev": "bun run build && (bun build ./src/index.ts --target=node --outdir=dist --watch & trap \"kill $!\" EXIT INT TERM; node --watch --env-file-if-exists=../../.env dist/index.js)",
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
