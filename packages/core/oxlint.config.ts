@@ -13,5 +13,6 @@ export default defineConfig({
         ignorePattern: "@__PURE__",
       },
     ],
+    "max-classes-per-file": ["allow"],
   },
 });

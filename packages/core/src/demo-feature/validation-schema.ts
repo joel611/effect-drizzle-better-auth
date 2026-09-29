@@ -14,7 +14,7 @@ export type TaskId = typeof TaskId.Type;
 export const taskCreateSchema = createInsertSchema(task, {
   title: (s) => s.check(Schema.isNonEmpty()),
 }).mapFields(Struct.omit(["id", "createdAt"]));
-export type TaskCreateInput = typeof taskCreateSchema.Encoded;
+export type TaskCreateInput = typeof taskCreateSchema.Type;
 
 // id, ownerId and createdAt are fixed after insert.
 export const taskUpdateSchema = createUpdateSchema(task, {

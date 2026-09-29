@@ -1,12 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as Schema from "effect/Schema";
 
 import { Db, task } from "../libs/db";
-import { TaskNotFound } from "./errors";
-import { taskCreateSchema, taskUpdateSchema } from "./validation-schema";
+import { TaskNotCreated, TaskNotFound } from "./errors";
 import type { TaskCreateInput, TaskId, TaskUpdateInput } from "./validation-schema";
 
 export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepository", {
@@ -14,26 +12,33 @@ export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepos
     const db = yield* Db;
 
     return {
+      // Callers must decode with taskCreateSchema first; no validation here.
       create: Effect.fn("TaskRepository.create")(function* create(data: TaskCreateInput) {
-        const parsed = yield* Schema.decodeUnknownEffect(taskCreateSchema)(data);
-
-        const [row] = yield* Effect.tryPromise(() => db.insert(task).values(parsed).returning());
+        const [row] = yield* Effect.tryPromise({
+          catch: (cause) => new TaskNotCreated({ cause }),
+          try: () => db.insert(task).values(data).returning(),
+        });
         if (!row) {
-          return yield* Effect.die("insert returned no rows");
+          return yield* new TaskNotCreated({});
         }
         return row;
       }),
       list: Effect.fn("TaskRepository.list")(function* list() {
         return yield* Effect.tryPromise(() => db.select().from(task));
       }),
+      // Callers must decode with taskUpdateSchema first; no validation here.
+      // Scoped to ownerId so a non-owner gets TaskNotFound, same as a missing id.
       update: Effect.fn("TaskRepository.update")(function* update(
         id: TaskId,
+        ownerId: string,
         data: TaskUpdateInput,
       ) {
-        const parsed = yield* Schema.decodeUnknownEffect(taskUpdateSchema)(data);
-
         const [row] = yield* Effect.tryPromise(() =>
-          db.update(task).set(parsed).where(eq(task.id, id)).returning(),
+          db
+            .update(task)
+            .set(data)
+            .where(and(eq(task.id, id), eq(task.ownerId, ownerId)))
+            .returning(),
         );
         if (!row) {
           return yield* new TaskNotFound({ id });
