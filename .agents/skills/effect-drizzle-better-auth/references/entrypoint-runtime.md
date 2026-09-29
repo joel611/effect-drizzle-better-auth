@@ -67,6 +67,8 @@ export const handleTaskJob = (payload: unknown): Promise<Outcome> =>
     }).pipe(
       Effect.catchTags({
         SchemaError: () => Effect.succeed("dead-letter" as const),
+        // TaskNotCreated wraps every insert failure: a transient DB error, but also an
+        // FK violation that fails again on each retry. Split the tag if the difference matters.
         TaskNotCreated: () => Effect.succeed("retry" as const),
       }),
     ),

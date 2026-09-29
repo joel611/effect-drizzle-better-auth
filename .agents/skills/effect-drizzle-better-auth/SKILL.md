@@ -38,7 +38,7 @@ export class Db extends Context.Service<Db, Database>()("Db") {
 
 `Auth` has the same shape over an `auth = betterAuth({ ...authOptions, database: drizzleAdapter(db, ...) })` singleton.
 
-Why: Better Auth's `drizzleAdapter` needs a plain, promise-returning Drizzle instance at construction time. Building `auth` on the `db` singleton makes Drizzle and Better Auth use one `pg.Pool` by construction, without relying on layer memoization. The Better Auth CLI also needs a config it can build synchronously, outside any Effect runtime.
+Why: Better Auth's `drizzleAdapter` needs a plain, promise-returning Drizzle instance at construction time. Building `auth` on the `db` singleton makes Drizzle and Better Auth use one `pg.Pool` by construction, without relying on layer memoization. The Better Auth CLI also loads a plain module and reads a synchronously built `auth` export, outside any Effect runtime. Its config imports `authOptions` from `auth.ts`, which builds the singletons at import, so that module must not depend on a layer being built.
 
 **2. All business logic lives in `Context.Service` classes. Only layers import `db` and `auth`.**
 
@@ -53,7 +53,7 @@ export const authOptions = { emailAndPassword: { enabled: true } /* plugins here
 
 The runtime `auth`, the CLI config (`auth.config.ts`) and `authMockLayer` all spread `authOptions`, and only the `database` differs. Why: plugins add tables and API methods. If the three instances drift apart, the CLI generates the wrong schema, or the mock accepts calls that production rejects.
 
-The CLI config builds its own `betterAuth` over a throwaway `pg.Pool` and does not import the runtime `auth`. Why: `generate` only inspects the options shape, and importing the runtime graph into the CLI's bundled `drizzle-orm` risks version skew.
+The CLI config exports its own `auth = betterAuth({ ...authOptions, database: drizzleAdapter(cliDb, { provider: "pg" }) })` over a pool it never connects. It passes no `schema` to the adapter. Why: `generate` never runs a query and only needs `provider` to pick a dialect. Importing the generated `auth-schema.ts` into the CLI, which loads it with its own bundled `drizzle-orm`, risks version skew against the project's pinned build.
 
 **4. Singletons read `process.env`. Effect `Config` is for layers built inside Effect.**
 
@@ -140,7 +140,7 @@ Why: `E = never` makes a missing error mapping a compile error, not a runtime 50
 
 ## Version assumptions
 
-Tested with `effect` 4.0.0-rc.115, `drizzle-orm`/`drizzle-kit` 1.0.0-rc.5, `better-auth` + `@better-auth/drizzle-adapter` 1.7.5 (the `relations-v2` import path), and `pg` 8. This stack moves fast. `Context.Service`, `Effect.fn`, `drizzle-orm/effect-schema`, `defineRelationsPart`/`mergeRelations`-style relations and the adapter import path have all changed between prereleases. Check current APIs with ctx7 before copying an example into a project on other versions.
+Tested with `effect` `4.0.0-rc.115`, `drizzle-orm`/`drizzle-kit` `1.0.0-rc.5-5935859` (an exact dist-tag build; a nearby rc breaks with newer `effect`), `better-auth` + `@better-auth/drizzle-adapter` 1.7.5 (the `relations-v2` import path), and `pg` 8. This stack moves fast. `Context.Service`, `Effect.fn`, `drizzle-orm/effect-schema`, `defineRelationsPart`/`mergeRelations`-style relations and the adapter import path have all changed between prereleases. Check current APIs with ctx7 before copying an example into a project on other versions.
 
 ## References
 

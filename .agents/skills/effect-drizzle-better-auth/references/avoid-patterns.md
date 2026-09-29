@@ -11,7 +11,7 @@ Each item is a pattern that looks right, often "the Effect way", but breaks some
 
 ### `Db` built inside a layer with `Effect.acquireRelease`
 
-**Avoid.** It looks cleaner, because the scope closes the pool. But Better Auth and its CLI need an `auth` instance built synchronously at module level over the same `db`. If `db` exists only inside a layer, `auth` also has to be built inside a layer. Then the pool is shared only if every consumer's layer resolves to one memoized `Db.layer`. A second `Layer.provide(Db.layer)` outside the `mergeAll` opens a second pool without any error.
+**Avoid.** It looks cleaner, because the scope closes the pool. But Better Auth's `drizzleAdapter` has to be given the `db` instance when `auth` is built. If `db` exists only inside a layer, `auth` also has to be built inside a layer. Then the module that exports `authOptions` can no longer be a plain module for the Better Auth CLI to import. Then the pool is shared only if every consumer's layer resolves to one memoized `Db.layer`. A second `Layer.provide(Db.layer)` outside the `mergeAll` opens a second pool without any error.
 **Instead:** a module-level `db` singleton, with `Db.layer = Layer.succeed(Db, db)`. The pool is shared by construction.
 **Trade-off accepted:** nothing calls `pool.end()`. Process exit closes the connections, which is fine for long-lived servers, workers and test runners. Add a shutdown hook only if a process must close its connections early.
 
