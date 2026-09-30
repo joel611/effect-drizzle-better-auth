@@ -19,7 +19,7 @@ packages/core/auth.config.ts   Better Auth CLI config
 apps/<entrypoint>/src/effect-runtime.ts   runtime + run
 ```
 
-Before you swap in a design the rules below don't use (`@effect/sql-pg` or `drizzle-orm/effect-postgres`, an `acquireRelease`-built `Db`, edits to `auth-schema.ts`, a load-then-compare ownership check, `XLive` layer constants, a service that provides its own `Db.layer`), read [`references/rejected-alternatives.md`](references/rejected-alternatives.md). Each one was tried or considered and rejected for a concrete reason.
+Before you swap in a design the rules below don't use (`@effect/sql-pg` or `drizzle-orm/effect-postgres`, an `acquireRelease`-built `Db`, edits to `auth-schema.ts`, a load-then-compare ownership check, or `XLive` layer constants), read [`references/rejected-alternatives.md`](references/rejected-alternatives.md). Each one was tried or considered and rejected for a concrete reason.
 
 ## Core rules
 
@@ -51,7 +51,7 @@ The singletons exist for pool sharing and the CLI. They are not a shortcut for s
 export const authOptions = { emailAndPassword: { enabled: true } /* plugins here */ } satisfies Partial<BetterAuthOptions>;
 ```
 
-The runtime `auth`, the CLI config (`auth.config.ts`) and `authMockLayer` all spread `authOptions`, and only the `database` differs. Why: plugins add tables and API methods. If the three instances drift apart, the CLI generates the wrong schema, or the mock accepts calls that production rejects.
+The runtime `auth`, the CLI config (`auth.config.ts`) and `authMockLayer` all spread `authOptions`, and only `database` differs (plus `secret` in the mock). Why: plugins add tables and API methods. If the three instances drift apart, the CLI generates the wrong schema, or the mock accepts calls that production rejects.
 
 The CLI config exports its own `auth = betterAuth({ ...authOptions, database: drizzleAdapter(cliDb, { provider: "pg" }) })` over a pool it never connects. It passes no `schema` to the adapter. Why: `generate` never runs a query and only needs `provider` to pick a dialect. Importing the generated `auth-schema.ts` into the CLI, which loads it with its own bundled `drizzle-orm`, risks version skew against the project's pinned build.
 

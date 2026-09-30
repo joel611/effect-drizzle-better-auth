@@ -28,7 +28,3 @@ Each item is a design that looks right, often "the Effect way", but breaks somet
 **Avoid.** Free-floating layer constants disconnect the layer from its service, and they multiply (`Live`, `Test`, `NoDeps`).
 **Instead:** static fields on the service class, `X.layer` (dependencies provided) and `X.layerNoDeps`.
 
-## Each service providing its own `Db.layer`, or a service building an app runtime
-
-**Avoid.** Runtime assembly spread across services makes the dependency graph hard to see. A copy of `Db.layer` outside `mergeAll` is a second node in the graph.
-**Instead:** each entrypoint app has one `effect-runtime.ts` that calls `Layer.mergeAll(...)` on the `.layer` of every service it needs.
