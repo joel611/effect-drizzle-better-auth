@@ -1,6 +1,6 @@
 ---
 name: effect-drizzle-better-auth
-description: Service pattern for a TypeScript backend built on Effect v4 + Drizzle (Postgres via pg) + Better Auth — singleton Db/Auth handles shared by one pg.Pool, Context.Service repositories, tagged errors, Drizzle-derived Effect schemas, tree-shakable mock layers, three-tier tests, and a `run` helper that forces every typed error to be handled at the API/worker boundary. Use whenever a project combines Effect with Drizzle or Better Auth, when adding a feature/repository/table, wiring Better Auth to Drizzle, validating request input with Effect Schema, writing tests for layers that touch Postgres, or calling Effect code from an HTTP handler, queue worker, or other promise-based entrypoint — even if the user only names one of these libraries.
+description: Effect v4 + Drizzle (pg) + Better Auth service pattern — one shared pg.Pool, Context.Service repositories, tagged errors, and a `run` helper that forces every typed error to be handled at the entrypoint. Use when a project uses Effect with Drizzle or Better Auth (even if only one is named), when adding a feature table or repository, wiring Better Auth to Drizzle, validating input with Effect Schema, testing Postgres-backed layers, or calling Effect from an HTTP handler, worker, or other promise-based entrypoint.
 ---
 
 # Effect v4 + Drizzle + Better Auth service pattern
@@ -11,15 +11,15 @@ The examples use one feature, `Task`, and assume this layout. Adapt names to the
 
 ```
 packages/core/src/
-  libs/db/        client.ts (db singleton), schema.ts (all tables + merged relations), effect/layer.ts (Db + dbMockLayer)
-  libs/auth/      auth.ts (auth singleton + authOptions), auth-schema.ts (CLI output), effect/layer.ts (Auth + authMockLayer)
+  libs/db/        client.ts (db singleton), schema.ts (all tables + merged relations), merge-relations.ts, effect/layer.ts (Db + dbMockLayer)
+  libs/auth/      auth.ts (auth singleton + authOptions), auth-schema.ts (CLI output), effect/layer.ts (Auth + authMockLayer), effect/error.ts (AuthError)
   task/           schema.ts, errors.ts, validation-schema.ts, task-repository.ts, __tests__/
   index.ts        public exports (no mock layers)
 packages/core/auth.config.ts   Better Auth CLI config
 apps/<entrypoint>/src/effect-runtime.ts   runtime + run
 ```
 
-Before writing code, check what to avoid: [`references/avoid-patterns.md`](references/avoid-patterns.md). Several of those are the "obvious Effect way" and were rejected for concrete reasons.
+Before you swap in a design the rules below don't use (`@effect/sql-pg` or `drizzle-orm/effect-postgres`, an `acquireRelease`-built `Db`, edits to `auth-schema.ts`, a load-then-compare ownership check, `XLive` layer constants, a service that provides its own `Db.layer`), read [`references/rejected-alternatives.md`](references/rejected-alternatives.md). Each one was tried or considered and rejected for a concrete reason.
 
 ## Core rules
 
@@ -42,7 +42,7 @@ Why: Better Auth's `drizzleAdapter` needs a plain, promise-returning Drizzle ins
 
 **2. All business logic lives in `Context.Service` classes. Only layers import `db` and `auth`.**
 
-The singletons exist for pool sharing and the CLI. They are not a shortcut for skipping Effect. Feature code gets `Db`/`Auth` with `yield*`, so its errors are typed and tests can swap the layer.
+The singletons exist for pool sharing and the CLI. They are not a shortcut for skipping Effect. Feature code gets `Db`/`Auth` with `yield*`, so its errors are typed, each call gets a tracing span, and tests can swap the layer.
 
 **3. One `authOptions` object feeds every Better Auth instance.**
 
@@ -57,7 +57,7 @@ The CLI config exports its own `auth = betterAuth({ ...authOptions, database: dr
 
 **4. Singletons read `process.env`. Effect `Config` is for layers built inside Effect.**
 
-Why: a module-level singleton is built at import time, so it cannot `yield* Config`. Keep secret reads in the singleton file only, and never scatter them through feature code.
+Why: a module-level singleton is built at import time, so it cannot `yield* Config`. Keep secret reads in the singleton file only.
 
 **5. Feature services use `make`, `Effect.fn` spans, and tagged errors.**
 
@@ -92,10 +92,10 @@ export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepos
 - `make` gets its dependencies with `yield*` instead of taking them as parameters. Why: dependency injection goes through the layer graph, so tests swap `Db` without changing call sites.
 - `layer` has its dependencies provided. `layerNoDeps` leaves them open for callers that assemble their own graph.
 - Wrap each method in `Effect.fn("Service.method")`. Why: you get a named tracing span per call.
-- Wrap every Drizzle call in `Effect.tryPromise`, because Drizzle queries are promises. Give it a `catch` that returns a `Data.TaggedError` when callers must tell the failure apart. Without a `catch`, the failure is `UnknownError`, and the entrypoint still has to handle it (see [`references/entrypoint-runtime.md`](references/entrypoint-runtime.md)).
-- An empty `returning()` becomes a tagged error (`TaskNotCreated`, `TaskNotFound`), not a defect. Why: "no row" is an expected outcome, and it must be in the error type so the entrypoint maps it.
+- Wrap every Drizzle call in `Effect.tryPromise`, because Drizzle queries are promises. Give it a `catch` that returns a `Data.TaggedError` when callers must tell the failure apart. Without a `catch`, the failure is `UnknownError`, so a foreign-key violation looks the same as a lost connection (see [`references/entrypoint-runtime.md`](references/entrypoint-runtime.md)).
+- An empty `returning()` becomes a tagged error (`TaskNotCreated`, `TaskNotFound`). Why: "no row" is an expected outcome. Returning `undefined` pushes a null check onto every caller, and throwing makes it a defect the types don't show. A tagged error is in the error type, so the entrypoint must map it.
 - Scope writes to the owner (`where id AND ownerId`). Why: a non-owner gets `NotFound`, the same as a missing id, so the API does not reveal that the row exists.
-- Repositories receive already-decoded, typed input and do no validation. Why: the entrypoint owns the 400 mapping (see [`references/schema-validation.md`](references/schema-validation.md)).
+- Repositories receive already-decoded, typed input and do no validation. Why: the entrypoint owns the 400 mapping, and callers don't pay for a second decode (see [`references/schema-validation.md`](references/schema-validation.md)).
 
 **6. Mock layers are standalone `/* @__PURE__ */` exports, not static fields, and they are not re-exported from the package index.**
 
@@ -109,7 +109,7 @@ export const authMockLayer = /* @__PURE__ */ Layer.sync(Auth, () =>
 );
 ```
 
-Set `"sideEffects": false` in the core `package.json`. Why: a static field on the service class is always bundled with the class. A `@__PURE__` top-level export that production code never imports is removed by the bundler. Standalone exports also let every test file (and other packages' tests) reuse one mock, instead of each test building its own copy. Use `Layer.sync`, not `Layer.succeed`, so each build gets fresh state.
+Set `"sideEffects": false` in the core `package.json`. Why: a static field on the service class is always bundled with the class, and a re-export from `index.ts` pulls `memoryAdapter` and `drizzle.mock` into production bundles. A `@__PURE__` top-level export that production code never imports is removed by the bundler. Standalone exports also let every test file (and other packages' tests) import one mock. Copies built inline per test drift apart, for example when one forgets the plugins from `authOptions`. Use `Layer.sync`, because `Layer.succeed` builds the instance once at module load and leaks in-memory state between tests.
 
 **7. Each entrypoint app owns one `effect-runtime.ts`. It combines layers with `Layer.mergeAll` and runs effects only through `run`.**
 
@@ -119,7 +119,7 @@ export const run = <A>(effect: Effect.Effect<A, never, ManagedRuntime.ManagedRun
   runtime.runPromise(effect);
 ```
 
-Why: `E = never` makes a missing error mapping a compile error, not a runtime 500. Services never build an app runtime themselves. Full pattern for APIs and workers: [`references/entrypoint-runtime.md`](references/entrypoint-runtime.md).
+Why: `E = never` makes a missing error mapping a compile error, not a runtime 500. Services never build an app runtime themselves. Before you write a handler, middleware or worker that calls `run`, read [`references/entrypoint-runtime.md`](references/entrypoint-runtime.md): handler shapes, `UnknownError`, and defects.
 
 ## Steps: add a feature (table + repository)
 
@@ -128,22 +128,21 @@ Why: `E = never` makes a missing error mapping a compile error, not a runtime 50
 3. Register the table and relations in `libs/db/schema.ts`: re-export the table and add the relations to `mergeRelations(authRelations, taskRelations, ...)`. Why: `{ ...authRelations, ...taskRelations }` replaces a table's whole entry, so adding `user.tasks` would remove Better Auth's generated `user.sessions`/`user.accounts`. `mergeRelations` merges per table and throws on a duplicate relation name. Both `db` and `dbMockLayer` read this one `relations` object.
 4. Write the validation schemas: [`references/schema-validation.md`](references/schema-validation.md).
 5. Define errors in `errors.ts` as `Data.TaggedError` classes, and write the repository as in rule 5.
-6. Export the service, errors and schemas from `packages/core/src/index.ts`. Don't export the mock layers.
+6. Export the service, errors and schemas from `packages/core/src/index.ts`. Mock layers stay out of it (rule 6).
 7. Add `<Feature>Repository.layer` to `Layer.mergeAll(...)` in each entrypoint's `effect-runtime.ts`. Then map every new error tag in the handlers, which the compiler enforces.
 8. Generate the migration (`drizzle-kit generate`). If a Better Auth plugin changed, first regenerate `auth-schema.ts` with the Better Auth CLI.
 
+Done when the project's typecheck and test scripts pass, and the test steps below cover the new repository.
+
 ## Steps: test
 
+Done when every tagged error the repository can emit is produced by at least one test.
+
 1. **Mock-layer unit test**: provide `authMockLayer` or `dbMockLayer` for business logic and tagged-error paths, without Postgres. `dbMockLayer` only builds SQL (`.toSQL()`). Use it for code that never runs a query.
-2. **Postgres integration test**: provide the real layers (`Layer.mergeAll(TaskRepository.layer, Db.layer)`) and assert real round-trips, including the error paths: a foreign-key violation gives `TaskNotCreated`, and a non-owner update gives `TaskNotFound`.
+2. **Postgres integration test**: provide the real layers (`Layer.mergeAll(TaskRepository.layer, Db.layer)`) and assert real round-trips and every error path. For `Task`: a foreign-key violation gives `TaskNotCreated`, and a non-owner update gives `TaskNotFound`.
 3. **Shared-database proof**: merge the same layers the entrypoint runtime uses. Sign up a user through `Auth`, insert a feature row with a foreign key to that user, and read the user back through `Db`. Why: the foreign key only holds if Auth and Db write to the same database. That proves the singleton wiring end to end, not just that two handles look equal.
 
 ## Version assumptions
 
 Tested with `effect` `4.0.0-rc.115`, `drizzle-orm`/`drizzle-kit` `1.0.0-rc.5-5935859` (an exact dist-tag build; a nearby rc breaks with newer `effect`), `better-auth` + `@better-auth/drizzle-adapter` 1.7.5 (the `relations-v2` import path), and `pg` 8. This stack moves fast. `Context.Service`, `Effect.fn`, `drizzle-orm/effect-schema`, `defineRelationsPart`/`mergeRelations`-style relations and the adapter import path have all changed between prereleases. Check current APIs with ctx7 before copying an example into a project on other versions.
 
-## References
-
-- [`references/entrypoint-runtime.md`](references/entrypoint-runtime.md): `run` with `E = never`, the API and worker handler shapes, `UnknownError`, and defects.
-- [`references/schema-validation.md`](references/schema-validation.md): Drizzle-derived Effect schemas and decoding at the boundary.
-- [`references/avoid-patterns.md`](references/avoid-patterns.md): rejected alternatives and why.

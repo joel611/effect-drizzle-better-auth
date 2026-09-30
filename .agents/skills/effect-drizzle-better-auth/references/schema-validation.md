@@ -34,7 +34,7 @@ export const taskSelectSchema = createSelectSchema(task, { id: TaskId });
 - Use `.mapFields(Struct.omit([...]))` to remove fields the caller must not set. That means generated columns on create, and immutable columns (`id`, `ownerId`, `createdAt`) on update. Why: without it, a client could set `ownerId` or `id` in the request body.
 - Brand the id. Give the table column `$type<TaskId>()` (`serial("id").$type<TaskId>().primaryKey()`) and override it in `createSelectSchema`. Why: repository signatures like `update(id: TaskId, ...)` then refuse a raw `number` that was never decoded. `schema.ts` imports only the `TaskId` type, so there is no runtime import cycle.
 
-## Decode at the boundary
+## Decode at the entrypoint
 
 ```ts
 const id = yield* Schema.decodeUnknownEffect(TaskId)(Number(c.req.param("id")));

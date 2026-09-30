@@ -27,7 +27,7 @@ assignable to parameter of type 'Effect<Response, never, Auth | TaskRepository>'
 
 ## Rule: map every tag to the entrypoint's result type, inside the effect
 
-The effect returns the entrypoint's own result: a `Response` for HTTP, an outcome value for a worker. Do the mapping in `catchTags` before `run`, not after it.
+The effect returns the entrypoint's own result: a `Response` for HTTP, an outcome value for a worker. Do the mapping in `catchTags` before `run`. Why: a `try { await run(...) } catch (e)` after it gets `unknown`, so the tags are lost and nothing checks that every tag is covered.
 
 ### HTTP handler
 
