@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
-import { taskCreateSchema, taskSelectSchema, taskUpdateSchema } from "../validation-schema";
+import { taskCreateSchema, taskUpdateSchema } from "../validation-schema";
 
 const decodeCreate = Schema.decodeUnknownSync(taskCreateSchema);
 const decodeUpdate = Schema.decodeUnknownSync(taskUpdateSchema);
@@ -44,11 +44,12 @@ describe("taskUpdateSchema", () => {
       title: "t",
     });
   });
-});
 
-describe("taskSelectSchema", () => {
-  it("rejects a non-integer id", () => {
-    const row = { createdAt: new Date(), done: false, id: 1.5, ownerId: "u1", title: "t" };
-    expect(() => Schema.decodeUnknownSync(taskSelectSchema)(row)).toThrow();
+  it("rejects an update with no fields", () => {
+    expect(() => decodeUpdate({})).toThrow("no fields to update");
+  });
+
+  it("rejects an update with only fields fixed after insert", () => {
+    expect(() => decodeUpdate({ id: 1, ownerId: "u2" })).toThrow("no fields to update");
   });
 });

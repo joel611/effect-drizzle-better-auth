@@ -23,6 +23,7 @@
     "pg": "catalog:"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.0",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "@typescript/native-preview": "catalog:",

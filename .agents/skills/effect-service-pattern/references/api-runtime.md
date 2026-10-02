@@ -48,10 +48,10 @@ taskRoutes.post("/", requireAuth, async (c) => {
 
 ## `Effect.tryPromise` without `catch` produces `UnknownError`
 
-The bare form `Effect.tryPromise(() => promise)` fails with `UnknownError` (tag `"UnknownError"`). `run` makes this visible: `TaskRepository.list` and `update` use the bare form, so `GET /tasks` and `PATCH /tasks/:id` must handle `UnknownError`. There are two fixes:
+The bare form `Effect.tryPromise(() => promise)` fails with `UnknownError` (tag `"UnknownError"`). `run` makes this visible: a route that calls a repository method built on the bare form must handle `UnknownError`. There are two fixes:
 
-- Handle `UnknownError` in the route's `catchTags` and map it to a 500. The routes do this now.
-- Give the repository call a `catch` that returns a domain `Data.TaggedError`, as `create` does with `TaskNotCreated`. Use this when the caller needs to tell the failure apart.
+- Handle `UnknownError` in the route's `catchTags` and map it to a 500.
+- Give the repository call a `catch` that returns a domain `Data.TaggedError`. `TaskRepository` does this for every method (`TaskNotCreated`, `TaskNotListed`, `TaskNotUpdated`), so its routes never see `UnknownError`.
 
 ## What `run` does not cover
 

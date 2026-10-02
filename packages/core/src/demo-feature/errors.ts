@@ -9,3 +9,11 @@ export class TaskNotFound extends Data.TaggedError("TaskNotFound")<{
 export class TaskNotCreated extends Data.TaggedError("TaskNotCreated")<{
   readonly cause?: unknown;
 }> {}
+
+export class TaskNotListed extends Data.TaggedError("TaskNotListed")<{
+  readonly cause: unknown;
+}> {}
+
+export class TaskNotUpdated extends Data.TaggedError("TaskNotUpdated")<{
+  readonly cause: unknown;
+}> {}
