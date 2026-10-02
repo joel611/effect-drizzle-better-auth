@@ -38,6 +38,8 @@ export class Db extends Context.Service<Db, Database>()("Db") {
 
 `Auth` has the same shape over an `auth = betterAuth({ ...authOptions, database: drizzleAdapter(db, ...) })` singleton.
 
+`Db` and `Auth` are thin handles. They exist for dependency injection and test swapping, and they add no behaviour: calls on the instance still return promises. Typed errors and spans come from the services that use them (rule 5).
+
 Why: Better Auth's `drizzleAdapter` needs a plain, promise-returning Drizzle instance at construction time. Building `auth` on the `db` singleton makes Drizzle and Better Auth use one `pg.Pool` by construction, without relying on layer memoization. The Better Auth CLI also loads a plain module and reads a synchronously built `auth` export, outside any Effect runtime. Its config imports `authOptions` from `auth.ts`, which builds the singletons at import, so that module must not depend on a layer being built.
 
 **2. All business logic lives in `Context.Service` classes. Only layers import `db` and `auth`.**
