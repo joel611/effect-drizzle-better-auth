@@ -1,56 +1,112 @@
+import { drizzle } from "drizzle-orm/node-postgres";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import { describe, expect, it } from "vitest";
+import type { Pool } from "pg";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Db, user } from "../../libs/db";
-import { dbMockLayer } from "../../libs/db/effect/layer";
+import { relations } from "../../libs/db/schema";
 import { TaskNotCreated, TaskNotFound, TaskNotListed, TaskNotUpdated } from "../errors";
 import { TaskRepository } from "../task-repository";
 import { TaskId } from "../validation-schema";
 
 const layer = Layer.mergeAll(TaskRepository.layer, Db.layer);
 
-// `dbMockLayer` rejects every query, so this needs no Postgres.
-const failingDbLayer = TaskRepository.layerNoDeps.pipe(Layer.provide(dbMockLayer));
+// A real Drizzle instance over a spied pg client, so each test decides what the driver
+// returns and no Postgres is needed. Drizzle queries with `rowMode: "array"`: rows are
+// positional, in column order (id, done, title, owner_id, created_at), and hold raw wire
+// values, so a timestamp is a string. An object row maps every column to `undefined`.
+const query = vi.fn();
+const spiedDbLayer = TaskRepository.layerNoDeps.pipe(
+  Layer.provide(Layer.succeed(Db, drizzle({ client: { query } as unknown as Pool, relations }))),
+);
 
-describe("TaskRepository when the database fails", () => {
-  it("fails create with TaskNotCreated", async () => {
-    const program = Effect.gen(function* program() {
-      const repo = yield* TaskRepository;
-      return yield* repo.create({ ownerId: "u1", title: "t" });
-    });
-
-    const error = await Effect.runPromise(
-      program.pipe(Effect.flip, Effect.provide(failingDbLayer)),
-    );
-
-    expect(error).toBeInstanceOf(TaskNotCreated);
+describe("TaskRepository over a spied pg client", () => {
+  beforeEach(() => {
+    query.mockReset();
   });
 
-  it("fails list with TaskNotListed", async () => {
+  it("lists the rows the driver returns", async () => {
+    query.mockResolvedValueOnce({
+      rows: [[7, true, "from the driver", "u1", "2026-01-02 03:04:05.678"]],
+    });
     const program = Effect.gen(function* program() {
       const repo = yield* TaskRepository;
       return yield* repo.list();
     });
 
-    const error = await Effect.runPromise(
-      program.pipe(Effect.flip, Effect.provide(failingDbLayer)),
-    );
+    const all = await Effect.runPromise(program.pipe(Effect.provide(spiedDbLayer)));
+
+    expect(all).toEqual([
+      {
+        createdAt: new Date("2026-01-02T03:04:05.678Z"),
+        done: true,
+        id: 7,
+        ownerId: "u1",
+        title: "from the driver",
+      },
+    ]);
+  });
+
+  it("fails create with TaskNotCreated when the driver returns no row", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    const program = Effect.gen(function* program() {
+      const repo = yield* TaskRepository;
+      return yield* repo.create({ ownerId: "u1", title: "t" });
+    });
+
+    const error = await Effect.runPromise(program.pipe(Effect.flip, Effect.provide(spiedDbLayer)));
+
+    expect(error).toBeInstanceOf(TaskNotCreated);
+  });
+
+  it("fails create with TaskNotCreated when the driver rejects", async () => {
+    query.mockRejectedValueOnce(new Error("connection lost"));
+    const program = Effect.gen(function* program() {
+      const repo = yield* TaskRepository;
+      return yield* repo.create({ ownerId: "u1", title: "t" });
+    });
+
+    const error = await Effect.runPromise(program.pipe(Effect.flip, Effect.provide(spiedDbLayer)));
+
+    expect(error).toBeInstanceOf(TaskNotCreated);
+  });
+
+  it("fails list with TaskNotListed when the driver rejects", async () => {
+    query.mockRejectedValueOnce(new Error("connection lost"));
+    const program = Effect.gen(function* program() {
+      const repo = yield* TaskRepository;
+      return yield* repo.list();
+    });
+
+    const error = await Effect.runPromise(program.pipe(Effect.flip, Effect.provide(spiedDbLayer)));
 
     expect(error).toBeInstanceOf(TaskNotListed);
   });
 
-  it("fails update with TaskNotUpdated", async () => {
+  it("fails update with TaskNotUpdated when the driver rejects", async () => {
+    query.mockRejectedValueOnce(new Error("connection lost"));
     const program = Effect.gen(function* program() {
       const repo = yield* TaskRepository;
       return yield* repo.update(TaskId.make(1), "u1", { done: true });
     });
 
-    const error = await Effect.runPromise(
-      program.pipe(Effect.flip, Effect.provide(failingDbLayer)),
-    );
+    const error = await Effect.runPromise(program.pipe(Effect.flip, Effect.provide(spiedDbLayer)));
 
     expect(error).toBeInstanceOf(TaskNotUpdated);
+  });
+
+  it("scopes update to the id and owner it sends to the driver", async () => {
+    query.mockResolvedValueOnce({ rows: [] });
+    const program = Effect.gen(function* program() {
+      const repo = yield* TaskRepository;
+      return yield* repo.update(TaskId.make(1), "u1", { done: true });
+    });
+
+    const error = await Effect.runPromise(program.pipe(Effect.flip, Effect.provide(spiedDbLayer)));
+
+    expect(error).toBeInstanceOf(TaskNotFound);
+    expect(query).toHaveBeenCalledWith(expect.anything(), [true, 1, "u1"]);
   });
 });
 
