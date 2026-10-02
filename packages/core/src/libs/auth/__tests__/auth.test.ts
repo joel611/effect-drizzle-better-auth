@@ -1,5 +1,5 @@
+import { expect, layer } from "@effect/vitest";
 import * as Effect from "effect/Effect";
-import { describe, expect, it } from "vitest";
 
 import { Auth, authMockLayer } from "../effect/layer";
 
@@ -9,45 +9,40 @@ const credentials = {
   password: "correct-horse-battery",
 };
 
-describe("authMockLayer (in-memory adapter)", () => {
-  it("signs up and signs in", async () => {
-    const program = Effect.gen(function* program() {
+layer(authMockLayer)("authMockLayer (in-memory adapter)", (it) => {
+  it.effect("signs up and signs in", () =>
+    Effect.gen(function* program() {
       const auth = yield* Auth;
+
       const signedUp = yield* Effect.tryPromise(() => auth.api.signUpEmail({ body: credentials }));
       const signedIn = yield* Effect.tryPromise(() =>
         auth.api.signInEmail({
           body: { email: credentials.email, password: credentials.password },
         }),
       );
-      return { signedIn, signedUp };
-    });
 
-    const { signedUp, signedIn } = await Effect.runPromise(
-      program.pipe(Effect.provide(authMockLayer)),
-    );
+      expect(signedUp.user.email).toBe(credentials.email);
+      expect(signedIn.user.id).toBe(signedUp.user.id);
+      expect(signedIn.token).toEqual(expect.any(String));
+    }),
+  );
 
-    expect(signedUp.user.email).toBe(credentials.email);
-    expect(signedIn.user.id).toBe(signedUp.user.id);
-    expect(signedIn.token).toEqual(expect.any(String));
-  });
-
-  it("rejects a wrong password", async () => {
-    const program = Effect.gen(function* program() {
+  it.effect("rejects a wrong password", () =>
+    Effect.gen(function* program() {
       const auth = yield* Auth;
       yield* Effect.tryPromise(() =>
         auth.api.signUpEmail({
           body: { ...credentials, email: "wrong@example.com" },
         }),
       );
-      return yield* Effect.tryPromise(() =>
+
+      const error = yield* Effect.tryPromise(() =>
         auth.api.signInEmail({
           body: { email: "wrong@example.com", password: "nope-nope-nope" },
         }),
       ).pipe(Effect.flip);
-    });
 
-    const error = await Effect.runPromise(program.pipe(Effect.provide(authMockLayer)));
-
-    expect(error).toBeDefined();
-  });
+      expect(error).toBeDefined();
+    }),
+  );
 });

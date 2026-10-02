@@ -39,6 +39,8 @@ How this repo wires Postgres-backed services (`Db`, `Auth`, `TaskRepository`) wi
 
 ## Steps: test a service that touches Postgres
 
+Write Effect tests with `@effect/vitest`, not `Effect.runPromise`: `layer(X.layer)("suite name", (it) => { it.effect("test name", () => Effect.gen(...)) })`. `layer` replaces `describe` and provides the layer to every test in the suite. Put assertions inside the effect, and turn an expected failure into a value with `Effect.flip`. Tests with no Effect stay on plain `it`.
+
 Follow the three-tier split used for `Auth` (`packages/core/src/libs/auth/__tests__/`):
 
 1. **Memory-backed unit test** (`auth.test.ts`) — build a local `Layer.effect(Auth, buildAuth(memoryAdapter(...), null))` in the test file for business logic and tagged-error paths, no real Postgres. If more than one test file needs the same fake layer, hoist it into a shared test-runtime file instead of duplicating the `Layer.effect(...)` call.
