@@ -21,7 +21,7 @@ taskRoutes.get("/", () =>
       return Response.json(yield* repo.list());
     }).pipe(
       Effect.catchTags({
-        UnknownError: () =>
+        TaskNotListed: () =>
           Effect.succeed(
             Response.json({ error: "tasks not listed" }, { status: 500 })
           ),
@@ -74,9 +74,6 @@ taskRoutes.patch("/:id", requireAuth, async (c) => {
         Number(c.req.param("id"))
       );
       const input = yield* Schema.decodeUnknownEffect(taskUpdateSchema)(body);
-      if (Object.keys(input).length === 0) {
-        return Response.json({ error: "no fields to update" }, { status: 400 });
-      }
 
       const repo = yield* TaskRepository;
       const task = yield* repo.update(id, user.id, input);
@@ -91,7 +88,7 @@ taskRoutes.patch("/:id", requireAuth, async (c) => {
           Effect.succeed(
             Response.json({ error: "task not found" }, { status: 404 })
           ),
-        UnknownError: () =>
+        TaskNotUpdated: () =>
           Effect.succeed(
             Response.json({ error: "task not updated" }, { status: 500 })
           ),

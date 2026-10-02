@@ -3,11 +3,56 @@ import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
 import { Db, user } from "../../libs/db";
-import { TaskNotCreated, TaskNotFound } from "../errors";
+import { dbMockLayer } from "../../libs/db/effect/layer";
+import { TaskNotCreated, TaskNotFound, TaskNotListed, TaskNotUpdated } from "../errors";
 import { TaskRepository } from "../task-repository";
 import { TaskId } from "../validation-schema";
 
 const layer = Layer.mergeAll(TaskRepository.layer, Db.layer);
+
+// `dbMockLayer` rejects every query, so this needs no Postgres.
+const failingDbLayer = TaskRepository.layerNoDeps.pipe(Layer.provide(dbMockLayer));
+
+describe("TaskRepository when the database fails", () => {
+  it("fails create with TaskNotCreated", async () => {
+    const program = Effect.gen(function* program() {
+      const repo = yield* TaskRepository;
+      return yield* repo.create({ ownerId: "u1", title: "t" });
+    });
+
+    const error = await Effect.runPromise(
+      program.pipe(Effect.flip, Effect.provide(failingDbLayer)),
+    );
+
+    expect(error).toBeInstanceOf(TaskNotCreated);
+  });
+
+  it("fails list with TaskNotListed", async () => {
+    const program = Effect.gen(function* program() {
+      const repo = yield* TaskRepository;
+      return yield* repo.list();
+    });
+
+    const error = await Effect.runPromise(
+      program.pipe(Effect.flip, Effect.provide(failingDbLayer)),
+    );
+
+    expect(error).toBeInstanceOf(TaskNotListed);
+  });
+
+  it("fails update with TaskNotUpdated", async () => {
+    const program = Effect.gen(function* program() {
+      const repo = yield* TaskRepository;
+      return yield* repo.update(TaskId.make(1), "u1", { done: true });
+    });
+
+    const error = await Effect.runPromise(
+      program.pipe(Effect.flip, Effect.provide(failingDbLayer)),
+    );
+
+    expect(error).toBeInstanceOf(TaskNotUpdated);
+  });
+});
 
 describe("TaskRepository", () => {
   it("creates a task and lists it back", async () => {

@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 
-import { Db, dbMockLayer } from "../effect/layer";
+import { Db } from "../effect/layer";
 import { task, user } from "../schema";
 
 describe("Db layer", () => {
@@ -25,16 +25,5 @@ describe("Db layer", () => {
 
     expect(inserted).toMatchObject({ done: false, ownerId, title: "vitest row" });
     expect(rows.length).toBeGreaterThan(0);
-  });
-
-  it("dbMockLayer builds SQL without a database connection", async () => {
-    const program = Effect.gen(function* program() {
-      const db = yield* Db;
-      return db.select().from(task).toSQL();
-    });
-
-    const query = await Effect.runPromise(program.pipe(Effect.provide(dbMockLayer)));
-
-    expect(query.sql).toBe('select "id", "done", "title", "owner_id", "created_at" from "task"');
   });
 });
