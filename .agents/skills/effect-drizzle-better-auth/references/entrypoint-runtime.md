@@ -82,7 +82,7 @@ The adapter for the queue library turns `Outcome` into its own ack, nack or retr
 `Effect.tryPromise(() => promise)` fails with `UnknownError` (tag `"UnknownError"`). Because `run` requires `E = never`, every entrypoint that reaches such a call must handle it. Choose one:
 
 - Map `UnknownError` in the entrypoint's `catchTags` to a 500 or `retry`. This is enough when the caller treats every failure the same way.
-- Give the repository call a `catch` that returns a domain `Data.TaggedError` (as `create` does with `TaskNotCreated`). Use this when the caller must tell the failure apart.
+- Give the repository call a `catch` that returns a domain `Data.TaggedError`. `TaskRepository` does this for every method, so its entrypoints never see `UnknownError`.
 
 ## What `run` does not cover
 
