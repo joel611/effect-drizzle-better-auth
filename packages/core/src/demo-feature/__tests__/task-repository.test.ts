@@ -1,27 +1,35 @@
-import { drizzle } from "drizzle-orm/node-postgres";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import type { Pool } from "pg";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Db, user } from "../../libs/db";
-import { relations } from "../../libs/db/schema";
+import { dbMockLayer } from "../../libs/db/effect/layer";
 import { TaskNotCreated, TaskNotFound, TaskNotListed, TaskNotUpdated } from "../errors";
 import { TaskRepository } from "../task-repository";
 import { TaskId } from "../validation-schema";
 
 const layer = Layer.mergeAll(TaskRepository.layer, Db.layer);
 
-// A real Drizzle instance over a spied pg client, so each test decides what the driver
-// returns and no Postgres is needed. Drizzle queries with `rowMode: "array"`: rows are
-// positional, in column order (id, done, title, owner_id, created_at), and hold raw wire
-// values, so a timestamp is a string. An object row maps every column to `undefined`.
+// `dbMockLayer`'s `drizzle.mock()` instance queries through its `$client`, an empty object
+// at runtime. Putting a spied `query` on it lets each test decide what the driver returns,
+// with no Postgres. Drizzle queries with `rowMode: "array"`: rows are positional, in
+// column order (id, done, title, owner_id, created_at), and hold raw wire values, so a
+// timestamp is a string. An object row maps every column to `undefined`.
 const query = vi.fn();
 const spiedDbLayer = TaskRepository.layerNoDeps.pipe(
-  Layer.provide(Layer.succeed(Db, drizzle({ client: { query } as unknown as Pool, relations }))),
+  Layer.provide(
+    Layer.effect(
+      Db,
+      Effect.gen(function* spied() {
+        const db = yield* Db;
+        Object.assign(db.$client, { query });
+        return db;
+      }),
+    ).pipe(Layer.provide(dbMockLayer)),
+  ),
 );
 
-describe("TaskRepository over a spied pg client", () => {
+describe("TaskRepository over a spied dbMockLayer", () => {
   beforeEach(() => {
     query.mockReset();
   });
