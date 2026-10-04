@@ -6,8 +6,8 @@ import { Auth } from "../effect/layer";
 const unique = (label: string) => `${label}-${crypto.randomUUID()}@example.com`;
 const password = "correct-horse-battery";
 
-layer(Auth.layer)("Auth over the Postgres-backed drizzleAdapter", (it) => {
-  it.effect("signs up, signs in and reads the session back through Postgres", () =>
+layer(Auth.layer)("Auth over the Postgres-backed drizzleAdapter and Redis storage", (it) => {
+  it.effect("signs up, signs in and reads the session back", () =>
     Effect.gen(function* program() {
       const email = unique("pg");
       const auth = yield* Auth;
