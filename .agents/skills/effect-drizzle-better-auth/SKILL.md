@@ -116,6 +116,8 @@ export class TaskRepository extends Context.Service<TaskRepository>()(
 
 - `make` gets its dependencies with `yield*` instead of taking them as parameters. Why: dependency injection goes through the layer graph, so tests swap `Db` without changing call sites.
 - `layer` has its dependencies provided. `layerNoDeps` leaves them open for callers that assemble their own graph.
+- An optional dependency is read with `Effect.serviceOption(Redis)` in `make`, which gives an `Option`. `TaskRepository` uses it for a read-through cache on `list`, and the `layerCached` static is `layerNoDeps.pipe(Layer.provide(Layer.mergeAll(Db.layer, Redis.layer)))`. Provide the optional service to the repository layer with `Layer.provide`. Why: `Layer.mergeAll(TaskRepository.layer, Redis.layer)` builds the two side by side, so Redis is not in scope while `make` runs, the option is `None`, and the cache silently never runs. The compiler cannot catch this, because the optional service is not in `make`'s requirements. Prove the wiring with a test against the exact layer the runtime uses.
+- A failure of an optional dependency must not reach the error channel. Give each call a short `Effect.timeout`, log the failure with `Effect.logWarning`, and fall back to the required path (`Effect.option`).
 - Wrap each method in `Effect.fn("Service.method")`. Why: you get a named tracing span per call.
 - Wrap every Drizzle call in `Effect.tryPromise`, because Drizzle queries are promises. Give each method a `catch` that returns its own `Data.TaggedError` (`TaskNotCreated`, `TaskNotListed`, `TaskNotUpdated`). Why: without a `catch`, the failure is `UnknownError`, the same tag for every method, and each entrypoint has to map it (see [`references/entrypoint-runtime.md`](references/entrypoint-runtime.md)).
 - An empty `returning()` becomes a tagged error (`TaskNotCreated`, `TaskNotFound`). Why: "no row" is an expected outcome. Returning `undefined` pushes a null check onto every caller, and throwing makes it a defect the types don't show. A tagged error is in the error type, so the entrypoint must map it.
@@ -153,7 +155,7 @@ Set `"sideEffects": false` in the core `package.json`. Why: a static field on th
 
 ```ts
 export const runtime = ManagedRuntime.make(
-  Layer.mergeAll(TaskRepository.layer, Auth.layer)
+  Layer.mergeAll(TaskRepository.layerCached, Auth.layer)
 );
 export const run = <A>(
   effect: Effect.Effect<
@@ -163,6 +165,8 @@ export const run = <A>(
   >
 ) => runtime.runPromise(effect);
 ```
+
+Merge the variant with every dependency the runtime wants, such as `layerCached`, which already has Redis provided (rule 5). Merging `Redis.layer` beside `TaskRepository.layer` would not turn the cache on.
 
 Why: `E = never` makes a missing error mapping a compile error, not a runtime 500. Services never build an app runtime themselves. Before you write a handler, middleware or worker that calls `run`, read [`references/entrypoint-runtime.md`](references/entrypoint-runtime.md): handler shapes, `UnknownError`, and defects.
 
@@ -174,7 +178,7 @@ Why: `E = never` makes a missing error mapping a compile error, not a runtime 50
 4. Write the validation schemas: [`references/schema-validation.md`](references/schema-validation.md).
 5. Define errors in `errors.ts` as `Data.TaggedError` classes, and write the repository as in rule 5.
 6. Export the service, errors and schemas from `packages/core/src/index.ts`. Mock layers stay out of it (rule 6).
-7. Add `<Feature>Repository.layer` to `Layer.mergeAll(...)` in each entrypoint's `effect-runtime.ts`. Then map every new error tag in the handlers, which the compiler enforces.
+7. Add `<Feature>Repository.layer` (or a variant with optional services provided, such as `layerCached`) to `Layer.mergeAll(...)` in each entrypoint's `effect-runtime.ts`. Then map every new error tag in the handlers, which the compiler enforces.
 8. Generate the migration (`drizzle-kit generate`). If a Better Auth plugin changed, first regenerate `auth-schema.ts` with the Better Auth CLI.
 9. Write the tests (see Test below).
 

@@ -6,12 +6,18 @@ An entrypoint is anything that calls Effect code and expects a promise back: an 
 
 ```ts
 // apps/<entrypoint>/src/effect-runtime.ts
-export const runtime = ManagedRuntime.make(Layer.mergeAll(TaskRepository.layer, Auth.layer));
+export const runtime = ManagedRuntime.make(
+  Layer.mergeAll(TaskRepository.layerCached, Auth.layer)
+);
 
 // The error channel must be `never`, so a typed error left unmapped fails the
 // typecheck instead of becoming a rejected promise at runtime.
 export const run = <A>(
-  effect: Effect.Effect<A, never, ManagedRuntime.ManagedRuntime.Services<typeof runtime>>,
+  effect: Effect.Effect<
+    A,
+    never,
+    ManagedRuntime.ManagedRuntime.Services<typeof runtime>
+  >
 ) => runtime.runPromise(effect);
 ```
 
@@ -23,7 +29,7 @@ assignable to parameter of type 'Effect<Response, never, Auth | TaskRepository>'
   Type 'TaskNotCreated' is not assignable to type 'never'.
 ```
 
-`R` is `ManagedRuntime.Services<typeof runtime>`. So a service missing from `Layer.mergeAll(...)` also fails the typecheck.
+`R` is `ManagedRuntime.Services<typeof runtime>`. So a service missing from `Layer.mergeAll(...)` also fails the typecheck. This does not cover an optional service read with `Effect.serviceOption`: it is not in any requirements type, so leaving it out (or merging it beside the layer that reads it instead of providing it) compiles and silently gives `None`. Only a test against the runtime's exact layer catches that.
 
 ## Rule: map every tag to the entrypoint's result type, inside the effect
 
@@ -37,15 +43,22 @@ app.post("/tasks", requireAuth, async (c) => {
   const user = c.get("user");
   return run(
     Effect.gen(function* created() {
-      const input = yield* Schema.decodeUnknownEffect(taskCreateSchema)({ ownerId: user.id, title: body.title });
+      const input = yield* Schema.decodeUnknownEffect(taskCreateSchema)({
+        ownerId: user.id,
+        title: body.title,
+      });
       const repo = yield* TaskRepository;
       return Response.json(yield* repo.create(input), { status: 201 });
     }).pipe(
       Effect.catchTags({
-        SchemaError: (e) => Effect.succeed(Response.json({ error: e.message }, { status: 400 })),
-        TaskNotCreated: () => Effect.succeed(Response.json({ error: "task not created" }, { status: 500 })),
-      }),
-    ),
+        SchemaError: (e) =>
+          Effect.succeed(Response.json({ error: e.message }, { status: 400 })),
+        TaskNotCreated: () =>
+          Effect.succeed(
+            Response.json({ error: "task not created" }, { status: 500 })
+          ),
+      })
+    )
   );
 });
 ```
@@ -60,7 +73,8 @@ type Outcome = "ack" | "retry" | "dead-letter";
 export const handleTaskJob = (payload: unknown): Promise<Outcome> =>
   run(
     Effect.gen(function* job() {
-      const input = yield* Schema.decodeUnknownEffect(taskCreateSchema)(payload);
+      const input =
+        yield* Schema.decodeUnknownEffect(taskCreateSchema)(payload);
       const repo = yield* TaskRepository;
       yield* repo.create(input);
       return "ack" as const;
@@ -70,8 +84,8 @@ export const handleTaskJob = (payload: unknown): Promise<Outcome> =>
         // TaskNotCreated wraps every insert failure: a transient DB error, but also an
         // FK violation that fails again on each retry. Split the tag if the difference matters.
         TaskNotCreated: () => Effect.succeed("retry" as const),
-      }),
-    ),
+      })
+    )
   );
 ```
 

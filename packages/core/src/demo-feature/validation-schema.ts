@@ -1,9 +1,5 @@
+import { createInsertSchema, createUpdateSchema } from "drizzle-orm/effect-schema";
 import { Schema, Struct } from "effect";
-import {
-  createInsertSchema,
-  createSelectSchema,
-  createUpdateSchema,
-} from "drizzle-orm/effect-schema";
 
 import { task } from "./schema.ts";
 
@@ -24,13 +20,3 @@ export const taskUpdateSchema = createUpdateSchema(task, {
   .mapFields(Struct.omit(["id", "ownerId", "createdAt"]))
   .check(Schema.makeFilter((input) => Object.keys(input).length > 0 || "no fields to update"));
 export type TaskUpdateInput = typeof taskUpdateSchema.Type;
-
-// The cached task list as a JSON string. `createdAt` is an ISO string on the wire and a
-// `Date` after decoding, so a cached list deep-equals the rows `db.select()` returns.
-export const taskListJsonSchema = Schema.fromJsonString(
-  Schema.Array(
-    createSelectSchema(task, { id: TaskId }).mapFields(
-      Struct.assign({ createdAt: Schema.DateFromString }),
-    ),
-  ),
-);
