@@ -7,7 +7,7 @@ An entrypoint is anything that calls Effect code and expects a promise back: an 
 ```ts
 // apps/<entrypoint>/src/effect-runtime.ts
 export const runtime = ManagedRuntime.make(
-  Layer.mergeAll(TaskRepository.layerCached, Auth.layer)
+  Layer.mergeAll(TaskRepository.layer, Auth.layer, Redis.layer)
 );
 
 // The error channel must be `never`, so a typed error left unmapped fails the
@@ -29,7 +29,7 @@ assignable to parameter of type 'Effect<Response, never, Auth | TaskRepository>'
   Type 'TaskNotCreated' is not assignable to type 'never'.
 ```
 
-`R` is `ManagedRuntime.Services<typeof runtime>`. So a service missing from `Layer.mergeAll(...)` also fails the typecheck. This does not cover an optional service read with `Effect.serviceOption`: it is not in any requirements type, so leaving it out (or merging it beside the layer that reads it instead of providing it) compiles and silently gives `None`. Only a test against the runtime's exact layer catches that.
+`R` is `ManagedRuntime.Services<typeof runtime>`. So a service missing from `Layer.mergeAll(...)` also fails the typecheck. This does not cover an optional service read with `Effect.serviceOption`: it is not in any requirements type, so leaving it out of `Layer.mergeAll(...)` compiles and silently gives `None`. Only a test against the runtime's exact layer catches that.
 
 ## Rule: map every tag to the entrypoint's result type, inside the effect
 

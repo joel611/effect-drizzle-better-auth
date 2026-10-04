@@ -97,12 +97,13 @@ const makeListCache = (client: Option.Option<RedisClient>): ListCache =>
     }),
   });
 
+// Optional: `Redis` is in no requirements type. It is read from the caller's context on each
+// call, so the cache is on whenever the runtime's root layer merges `Redis.layer`.
+const currentListCache = Effect.map(Effect.serviceOption(Redis), makeListCache);
+
 export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepository", {
   make: Effect.gen(function* make() {
     const db = yield* Db;
-    // Optional: `Redis` is not in `make`'s requirements. It is only `Some` when Redis is
-    // provided to this layer with `Layer.provide` (see `layerCached`), not merged beside it.
-    const listCache = makeListCache(yield* Effect.serviceOption(Redis));
 
     return {
       // Callers must decode with taskCreateSchema first; no validation here.
@@ -114,10 +115,11 @@ export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepos
         if (!row) {
           return yield* new TaskNotCreated({});
         }
-        yield* listCache.invalidate;
+        yield* (yield* currentListCache).invalidate;
         return row;
       }),
       list: Effect.fn("TaskRepository.list")(function* list() {
+        const listCache = yield* currentListCache;
         const cached = yield* listCache.read;
         if (Option.isSome(cached)) {
           return cached.value;
@@ -148,18 +150,12 @@ export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepos
         if (!row) {
           return yield* new TaskNotFound({ id });
         }
-        yield* listCache.invalidate;
+        yield* (yield* currentListCache).invalidate;
         return row;
       }),
     };
   }),
 }) {
   static readonly layerNoDeps = Layer.effect(this, this.make);
-  // Db only, no cache.
   static readonly layer = this.layerNoDeps.pipe(Layer.provide(Db.layer));
-  // Db + Redis read-through cache for `list`. Redis must be provided to the repository
-  // layer: `Layer.mergeAll(TaskRepository.layer, Redis.layer)` would leave the option `None`.
-  static readonly layerCached = this.layerNoDeps.pipe(
-    Layer.provide(Layer.mergeAll(Db.layer, Redis.layer)),
-  );
 }

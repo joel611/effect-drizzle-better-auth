@@ -131,8 +131,8 @@ expectTypeOf<Effect.Success<ReturnType<TaskRepository["Service"]["list"]>>>().to
   (typeof task.$inferSelect)[]
 >();
 
-// A fake ioredis client, provided by the `Redis` tag. `Layer.provide` (not `Layer.mergeAll`)
-// puts it in scope while `make` runs, so `Effect.serviceOption(Redis)` finds it.
+// A fake ioredis client, merged beside the repository like the API runtime merges
+// `Redis.layer`. Each method reads it from the test's context with `Effect.serviceOption`.
 const redisGet = vi.fn();
 const redisSet = vi.fn();
 const redisDel = vi.fn();
@@ -141,8 +141,9 @@ const fakeRedis = {
   get: redisGet,
   set: redisSet,
 } as unknown as RedisClient;
-const cachedSpiedLayer = TaskRepository.layerNoDeps.pipe(
-  Layer.provide(Layer.mergeAll(spiedDb, Layer.succeed(Redis, fakeRedis))),
+const cachedSpiedLayer = Layer.mergeAll(
+  TaskRepository.layerNoDeps.pipe(Layer.provide(spiedDb)),
+  Layer.succeed(Redis, fakeRedis),
 );
 
 layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
@@ -302,10 +303,10 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
   );
 });
 
-// `layerCached` exactly as the API runtime wires it. If Redis did not reach `make`
-// (the `Layer.mergeAll` trap), `list` would never write the key and this suite fails.
-layer(Layer.mergeAll(TaskRepository.layerCached, Db.layer, Redis.layer))(
-  "TaskRepository.layerCached over Postgres and Redis",
+// Wired like the API runtime: `Redis.layer` merged at the root beside `TaskRepository.layer`.
+// If the methods did not see Redis there, `list` would never write the key and this suite fails.
+layer(Layer.mergeAll(TaskRepository.layer, Db.layer, Redis.layer))(
+  "TaskRepository with Redis merged at the root, over Postgres and Redis",
   (it) => {
     it.effect("caches list in Redis and drops the cache when a task is created", () =>
       Effect.gen(function* program() {
