@@ -7,7 +7,7 @@ An entrypoint is anything that calls Effect code and expects a promise back: an 
 ```ts
 // apps/<entrypoint>/src/effect-runtime.ts
 export const runtime = ManagedRuntime.make(
-  Layer.mergeAll(TaskRepository.layer, Auth.layer, Redis.layer)
+  Layer.mergeAll(TaskRepository.layer, Auth.layer, Cache.layer)
 );
 
 // The error channel must be `never`, so a typed error left unmapped fails the

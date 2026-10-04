@@ -8,21 +8,19 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";
 
+import { Cache } from "../libs/cache";
 import { Db, task } from "../libs/db";
-import { Redis } from "../libs/redis";
-import type { RedisClient } from "../libs/redis";
 import { TaskNotCreated, TaskNotFound, TaskNotListed, TaskNotUpdated } from "./errors";
 import { TaskId } from "./validation-schema";
 import type { TaskCreateInput, TaskUpdateInput } from "./validation-schema";
 
 type Task = typeof task.$inferSelect;
 
-// `task:` keeps the key apart from Better Auth's `better-auth:` keys on the same Redis.
+// `task:` keeps the key apart from Better Auth's `better-auth:` keys on the same Redis
+// behind `Cache`.
 const LIST_CACHE_KEY = "task:list";
 // Backstop for a missed invalidation: a stale list lives at most this long.
 const LIST_CACHE_TTL_SECONDS = 60;
-// The shared client queues commands while offline, so a call can hang. Cap each one here.
-const CACHE_TIMEOUT = "100 millis";
 
 // The cached list as a JSON string. `createdAt` is an ISO string on the wire and a `Date`
 // after decoding, so a cached list deep-equals the rows `db.select()` returns.
@@ -38,13 +36,12 @@ const taskListJson = Schema.fromJsonString(
 const decodeTaskList = Schema.decodeUnknownEffect(taskListJson);
 const encodeTaskList = Schema.encodeEffect(taskListJson);
 
-// Runs one cache step in a named span with a timeout. A failure is logged (a plain miss is
-// not) and becomes `None`, so the cache never reaches the error channel.
+// Runs one cache step in a named span. A failure is logged (a plain miss is not) and becomes
+// `None`, so the cache never reaches the error channel.
 const cacheStep =
   (name: string) =>
   <A, E>(step: Effect.Effect<A, E>): Effect.Effect<Option.Option<A>> =>
     step.pipe(
-      Effect.timeout(CACHE_TIMEOUT),
       Effect.tapError((cause) =>
         Cause.isNoSuchElementError(cause)
           ? Effect.void
@@ -61,24 +58,22 @@ interface ListCache {
   readonly write: (rows: Task[]) => Effect.Effect<void>;
 }
 
-// The list cache over an optional Redis client. With no client every step is a no-op miss.
-const makeListCache = (client: Option.Option<RedisClient>): ListCache =>
-  Option.match(client, {
+// The list cache over an optional `Cache`. With no cache every step is a no-op miss.
+const makeListCache = (cache: Option.Option<Cache["Service"]>): ListCache =>
+  Option.match(cache, {
     onNone: () => ({
       invalidate: Effect.void,
       read: Effect.succeedNone,
       write: (_rows: Task[]) => Effect.void,
     }),
-    onSome: (redis) => ({
+    onSome: (c) => ({
       invalidate: Effect.asVoid(
-        cacheStep("TaskRepository.cache.invalidate")(
-          Effect.tryPromise(() => redis.del(LIST_CACHE_KEY)),
-        ),
+        cacheStep("TaskRepository.cache.invalidate")(c.del(LIST_CACHE_KEY)),
       ),
       read: cacheStep("TaskRepository.cache.read")(
-        Effect.tryPromise(() => redis.get(LIST_CACHE_KEY)).pipe(
+        c.get(LIST_CACHE_KEY).pipe(
           // A miss fails with NoSuchElementError, so it ends as `None` without a warning.
-          Effect.flatMap(Effect.fromNullishOr),
+          Effect.flatMap((hit) => Effect.fromOption(hit)),
           Effect.flatMap(decodeTaskList),
         ),
       ),
@@ -86,20 +81,16 @@ const makeListCache = (client: Option.Option<RedisClient>): ListCache =>
         Effect.asVoid(
           cacheStep("TaskRepository.cache.write")(
             encodeTaskList(rows).pipe(
-              Effect.flatMap((json) =>
-                Effect.tryPromise(() =>
-                  redis.set(LIST_CACHE_KEY, json, "EX", LIST_CACHE_TTL_SECONDS),
-                ),
-              ),
+              Effect.flatMap((json) => c.set(LIST_CACHE_KEY, json, LIST_CACHE_TTL_SECONDS)),
             ),
           ),
         ),
     }),
   });
 
-// Optional: `Redis` is in no requirements type. It is read from the caller's context on each
-// call, so the cache is on whenever the runtime's root layer merges `Redis.layer`.
-const currentListCache = Effect.map(Effect.serviceOption(Redis), makeListCache);
+// Optional: `Cache` is in no requirements type. It is read from the caller's context on each
+// call, so the cache is on whenever the runtime's root layer merges `Cache.layer`.
+const currentListCache = Effect.map(Effect.serviceOption(Cache), makeListCache);
 
 export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepository", {
   make: Effect.gen(function* make() {

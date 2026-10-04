@@ -1,15 +1,13 @@
 import { beforeEach, expect, layer, vi } from "@effect/vitest";
 import * as Effect from "effect/Effect";
-import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
-import * as TestClock from "effect/testing/TestClock";
 import { expectTypeOf } from "vitest";
 
+import { Cache, CacheError } from "../../libs/cache";
 import { Db, user } from "../../libs/db";
 import type { task } from "../../libs/db";
 import { dbMockLayer } from "../../libs/db/effect/layer";
 import { Redis } from "../../libs/redis";
-import type { RedisClient } from "../../libs/redis";
 import { TaskNotCreated, TaskNotFound, TaskNotListed, TaskNotUpdated } from "../errors";
 import { TaskRepository } from "../task-repository";
 import { TaskId } from "../validation-schema";
@@ -56,7 +54,7 @@ layer(TaskRepository.layerNoDeps.pipe(Layer.provide(spiedDb)))(
       }),
     );
 
-    it.effect("queries the driver on every list when no Redis is provided", () =>
+    it.effect("queries the driver on every list when no Cache is provided", () =>
       Effect.gen(function* program() {
         query.mockResolvedValue({ rows: [] });
         const repo = yield* TaskRepository;
@@ -131,41 +129,40 @@ expectTypeOf<Effect.Success<ReturnType<TaskRepository["Service"]["list"]>>>().to
   (typeof task.$inferSelect)[]
 >();
 
-// A fake ioredis client, merged beside the repository like the API runtime merges
-// `Redis.layer`. Each method reads it from the test's context with `Effect.serviceOption`.
-const redisGet = vi.fn();
-const redisSet = vi.fn();
-const redisDel = vi.fn();
-const fakeRedis = {
-  del: redisDel,
-  get: redisGet,
-  set: redisSet,
-} as unknown as RedisClient;
+// A fake `Cache`, merged beside the repository like the API runtime merges `Cache.layer`.
+// Each method reads it from the test's context with `Effect.serviceOption`.
+const cacheGet = vi.fn();
+const cacheSet = vi.fn();
+const cacheDel = vi.fn();
+const fakeCache: Cache["Service"] = { del: cacheDel, get: cacheGet, set: cacheSet };
 const cachedSpiedLayer = Layer.mergeAll(
   TaskRepository.layerNoDeps.pipe(Layer.provide(spiedDb)),
-  Layer.succeed(Redis, fakeRedis),
+  Layer.succeed(Cache, fakeCache),
 );
+const cacheDown = () => Effect.fail(new CacheError({ cause: "redis down" }));
 
-layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
+layer(cachedSpiedLayer)("TaskRepository with a fake Cache", (it) => {
   beforeEach(() => {
     query.mockReset();
-    redisGet.mockReset();
-    redisSet.mockReset().mockResolvedValue("OK");
-    redisDel.mockReset().mockResolvedValue(1);
+    cacheGet.mockReset().mockReturnValue(Effect.succeedNone);
+    cacheSet.mockReset().mockReturnValue(Effect.void);
+    cacheDel.mockReset().mockReturnValue(Effect.void);
   });
 
   it.effect("serves list from the cache without querying the driver", () =>
     Effect.gen(function* program() {
-      redisGet.mockResolvedValueOnce(
-        JSON.stringify([
-          {
-            createdAt: "2026-03-04T05:06:07.890Z",
-            done: false,
-            id: 9,
-            ownerId: "u2",
-            title: "from the cache",
-          },
-        ]),
+      cacheGet.mockReturnValueOnce(
+        Effect.succeedSome(
+          JSON.stringify([
+            {
+              createdAt: "2026-03-04T05:06:07.890Z",
+              done: false,
+              id: 9,
+              ownerId: "u2",
+              title: "from the cache",
+            },
+          ]),
+        ),
       );
       const repo = yield* TaskRepository;
 
@@ -187,14 +184,13 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
 
   it.effect("on a miss, lists from the driver and caches the rows with a 60s TTL", () =>
     Effect.gen(function* program() {
-      redisGet.mockResolvedValueOnce(null);
       query.mockResolvedValueOnce({ rows: [driverRow] });
       const repo = yield* TaskRepository;
 
       const all = yield* repo.list();
 
       expect(all).toEqual([driverTask]);
-      expect(redisSet).toHaveBeenCalledWith(
+      expect(cacheSet).toHaveBeenCalledWith(
         "task:list",
         JSON.stringify([
           {
@@ -205,15 +201,14 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
             createdAt: "2026-01-02T03:04:05.678Z",
           },
         ]),
-        "EX",
         60,
       );
     }),
   );
 
-  it.effect("lists from the driver when the Redis read rejects", () =>
+  it.effect("lists from the driver when the cache read fails", () =>
     Effect.gen(function* program() {
-      redisGet.mockRejectedValueOnce(new Error("redis down"));
+      cacheGet.mockImplementationOnce(cacheDown);
       query.mockResolvedValueOnce({ rows: [driverRow] });
       const repo = yield* TaskRepository;
 
@@ -223,23 +218,21 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
     }),
   );
 
-  it.effect("lists from the driver when the Redis read hangs past the timeout", () =>
+  it.effect("lists from the driver when the cached payload is corrupt", () =>
     Effect.gen(function* program() {
-      redisGet.mockImplementationOnce(() => Effect.runPromise(Effect.never));
+      cacheGet.mockReturnValueOnce(Effect.succeedSome(JSON.stringify([{ id: "not a task" }])));
       query.mockResolvedValueOnce({ rows: [driverRow] });
       const repo = yield* TaskRepository;
 
-      const fiber = yield* repo.list().pipe(Effect.forkChild);
-      yield* TestClock.adjust("100 millis");
-      const all = yield* Fiber.join(fiber);
+      const all = yield* repo.list();
 
       expect(all).toEqual([driverTask]);
     }),
   );
 
-  it.effect("lists from the driver when the cached payload is corrupt", () =>
+  it.effect("lists from the driver when the cache write fails", () =>
     Effect.gen(function* program() {
-      redisGet.mockResolvedValueOnce(JSON.stringify([{ id: "not a task" }]));
+      cacheSet.mockImplementationOnce(cacheDown);
       query.mockResolvedValueOnce({ rows: [driverRow] });
       const repo = yield* TaskRepository;
 
@@ -251,7 +244,6 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
 
   it.effect("still fails list with TaskNotListed on a miss when the driver rejects", () =>
     Effect.gen(function* program() {
-      redisGet.mockResolvedValueOnce(null);
       query.mockRejectedValueOnce(new Error("connection lost"));
       const repo = yield* TaskRepository;
 
@@ -268,7 +260,7 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
 
       yield* repo.create({ ownerId: "u1", title: "from the driver" });
 
-      expect(redisDel).toHaveBeenCalledWith("task:list");
+      expect(cacheDel).toHaveBeenCalledWith("task:list");
     }),
   );
 
@@ -279,13 +271,13 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
 
       yield* repo.update(TaskId.make(7), "u1", { done: true });
 
-      expect(redisDel).toHaveBeenCalledWith("task:list");
+      expect(cacheDel).toHaveBeenCalledWith("task:list");
     }),
   );
 
-  it.effect("create and update still return their rows when invalidation rejects", () =>
+  it.effect("create and update still return their rows when invalidation fails", () =>
     Effect.gen(function* program() {
-      redisDel.mockRejectedValue(new Error("redis down"));
+      cacheDel.mockImplementation(cacheDown);
       query.mockResolvedValue({ rows: [driverRow] });
       const repo = yield* TaskRepository;
 
@@ -303,10 +295,11 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Redis cache", (it) => {
   );
 });
 
-// Wired like the API runtime: `Redis.layer` merged at the root beside `TaskRepository.layer`.
-// If the methods did not see Redis there, `list` would never write the key and this suite fails.
-layer(Layer.mergeAll(TaskRepository.layer, Db.layer, Redis.layer))(
-  "TaskRepository with Redis merged at the root, over Postgres and Redis",
+// Wired like the API runtime: `Cache.layer` merged at the root beside `TaskRepository.layer`.
+// If the methods did not see the cache there, `list` would never write the key and this suite
+// fails. `Redis` is only here to inspect the key.
+layer(Layer.mergeAll(TaskRepository.layer, Cache.layer, Db.layer, Redis.layer))(
+  "TaskRepository with Cache merged at the root, over Postgres and Redis",
   (it) => {
     it.effect("caches list in Redis and drops the cache when a task is created", () =>
       Effect.gen(function* program() {
