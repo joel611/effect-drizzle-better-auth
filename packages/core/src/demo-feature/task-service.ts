@@ -1,19 +1,15 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
-import { createSelectSchema } from "drizzle-orm/effect-schema";
 
 import { Cache } from "../effects/cache/service";
-import { task } from "./schema";
 import { TaskRepository } from "./task-repository";
-import { TaskId } from "./validation-schema";
-import type { TaskCreateInput, TaskUpdateInput } from "./validation-schema";
+import { taskSelectSchema } from "./validation-schema";
+import type { TaskCreateInput, TaskId, TaskUpdateInput } from "./validation-schema";
 
 const LIST_KEY = "tasks:list";
 const LIST_TTL_SECONDS = 60;
 
 // JSON codec for the cached list, so `createdAt` comes back as a Date and `id` as a TaskId.
-const TaskListJson = Schema.fromJsonString(
-  Schema.toCodecJson(Schema.Array(createSelectSchema(task, { id: TaskId }))),
-);
+const TaskListJson = Schema.fromJsonString(Schema.toCodecJson(Schema.Array(taskSelectSchema)));
 const decodeList = Schema.decodeUnknownEffect(TaskListJson);
 const encodeList = Schema.encodeEffect(TaskListJson);
 
