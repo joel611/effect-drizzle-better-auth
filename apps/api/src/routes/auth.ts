@@ -1,5 +1,5 @@
 import { Auth } from "core";
-import * as Effect from "effect/Effect";
+import { Effect } from "effect";
 import { Hono } from "hono";
 
 import { run } from "../effect-runtime";

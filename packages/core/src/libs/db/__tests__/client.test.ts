@@ -1,5 +1,5 @@
 import { expect, layer } from "@effect/vitest";
-import * as Effect from "effect/Effect";
+import { Effect } from "effect";
 
 import { Db } from "../effect/layer";
 import { task, user } from "../schema";

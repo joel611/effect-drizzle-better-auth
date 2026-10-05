@@ -1,6 +1,4 @@
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import * as Option from "effect/Option";
+import { Effect, Layer, Option } from "effect";
 
 import { redis } from "../../libs/redis";
 import { Cache, CacheNotDeleted, CacheNotRead, CacheNotWritten } from "./service";

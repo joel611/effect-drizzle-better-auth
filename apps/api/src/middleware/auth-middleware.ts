@@ -1,6 +1,6 @@
 import { Auth } from "core";
 import type { AuthType } from "core";
-import * as Effect from "effect/Effect";
+import { Effect } from "effect";
 import { createMiddleware } from "hono/factory";
 
 import type { AppEnv } from "../app";

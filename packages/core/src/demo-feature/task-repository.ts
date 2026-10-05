@@ -1,7 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import * as Context from "effect/Context";
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
+import { Context, Effect, Layer } from "effect";
 
 import { Db, task } from "../libs/db";
 import { TaskNotCreated, TaskNotFound, TaskNotListed, TaskNotUpdated } from "./errors";

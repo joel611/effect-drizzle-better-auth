@@ -1,6 +1,5 @@
 import { beforeEach, expect, layer, vi } from "@effect/vitest";
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
+import { Effect, Layer } from "effect";
 
 import { Db, user } from "../../libs/db";
 import { dbMockLayer } from "../../libs/db/effect/layer";
