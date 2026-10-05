@@ -13,7 +13,8 @@ The examples use one feature, `Task`, and assume this layout. Adapt names to the
 packages/core/src/
   libs/db/        client.ts (db singleton), schema.ts (all tables + merged relations), merge-relations.ts, effect/layer.ts (Db + dbMockLayer)
   libs/auth/      auth.ts (auth singleton + authOptions), auth-schema.ts (CLI output), effect/layer.ts (Auth + authMockLayer)
-  libs/redis/     client.ts (redis singleton), effect/layer.ts (Redis)
+  libs/redis/     client.ts (redis singleton)
+  effects/cache/  service.ts (Cache interface + tagged errors), redis.ts (cacheRedisLayer)
   task/           schema.ts, errors.ts, validation-schema.ts, task-repository.ts, __tests__/
   index.ts        public exports (no mock layers)
 packages/core/auth.config.ts   Better Auth CLI config
@@ -42,9 +43,11 @@ export class Db extends Context.Service<Db, Database>()("Db") {
 
 `Auth` has the same shape over an `auth = betterAuth({ ...authOptions, database: drizzleAdapter(db, ...), secondaryStorage: redisStorage({ client: redis }) })` singleton.
 
-`Redis` has the same shape over a `redis = new Redis(process.env.REDIS_URL, { lazyConnect: true })` singleton (`ioredis`). `auth` passes it to `@better-auth/redis-storage`, so sessions, verification records and rate-limit counters live in Redis and the Postgres `session` table stays empty. Why `lazyConnect`: `auth.ts` imports the client, and the CLI config and `authMockLayer` import `auth.ts`. Neither must need a running Redis. Type the storage as Better Auth's `SecondaryStorage` interface (`const secondaryStorage: SecondaryStorage = redisStorage(...)`). Why: `AuthInstance` is `typeof auth`, and the mock's `memoryStorage()` (a `Map`-backed `SecondaryStorage`) is only assignable to it when both sides have the interface type.
+`redis = new Redis(process.env.REDIS_URL, { lazyConnect: true })` is a singleton (`ioredis`) with no Effect handle of its own. `auth` passes it to `@better-auth/redis-storage`, so sessions, verification records and rate-limit counters live in Redis and the Postgres `session` table stays empty. Why `lazyConnect`: `auth.ts` imports the client, and the CLI config and `authMockLayer` import `auth.ts`. Neither must need a running Redis. Type the storage as Better Auth's `SecondaryStorage` interface (`const secondaryStorage: SecondaryStorage = redisStorage(...)`). Why: `AuthInstance` is `typeof auth`, and the mock's `memoryStorage()` (a `Map`-backed `SecondaryStorage`) is only assignable to it when both sides have the interface type.
 
-`Db`, `Auth` and `Redis` are thin handles. They exist for dependency injection and test swapping, and they add no behaviour: calls on the instance still return promises. Typed errors and spans come from the services that use them (rule 5).
+`Db` and `Auth` are thin handles. They exist for dependency injection and test swapping, and they add no behaviour: calls on the instance still return promises. Typed errors and spans come from the services that use them (rule 5).
+
+`Cache` is not a thin handle. `effects/cache/service.ts` declares the interface: string `get` (returns `Option`), `set` (optional TTL in seconds) and `delete`, each an Effect with its own tagged error (`CacheNotRead`, `CacheNotWritten`, `CacheNotDeleted`). `effects/cache/redis.ts` exports `cacheRedisLayer`, which implements it over the `redis` singleton, so the cache and Better Auth share one connection. Add other implementations as sibling files. Why `cacheRedisLayer` is a standalone export and not a static `Cache.layer`: a static would make `service.ts` import `redis`, and the interface would then depend on one implementation.
 
 Why: Better Auth's `drizzleAdapter` needs a plain, promise-returning Drizzle instance at construction time. Building `auth` on the `db` singleton makes Drizzle and Better Auth use one `pg.Pool` by construction, without relying on layer memoization. The Better Auth CLI also loads a plain module and reads a synchronously built `auth` export, outside any Effect runtime. Its config imports `authOptions` from `auth.ts`, which builds the singletons at import, so that module must not depend on a layer being built.
 
