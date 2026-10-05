@@ -1,14 +1,9 @@
-import { Auth, TaskService, cacheRedisLayer } from "core";
+import { Auth, TaskService } from "core";
 import { Layer, ManagedRuntime } from "effect";
 import type * as Effect from "effect/Effect";
 
-// Cache is provided *to* TaskService (not merged beside it) so its optional
-// Effect.serviceOption(Cache) lookup finds it.
 export const runtime = ManagedRuntime.make(
-  Layer.mergeAll(
-    TaskService.layer.pipe(Layer.provide(cacheRedisLayer)),
-    Auth.layer
-  )
+  Layer.mergeAll(TaskService.layerCached, Auth.layer)
 );
 
 // Runs an effect for an HTTP handler. The error channel must be `never`, so a
