@@ -1,1 +1,1 @@
-export { Cache, CacheError } from "./effect/layer";
+export { Cache, CacheError } from "./effect/service";

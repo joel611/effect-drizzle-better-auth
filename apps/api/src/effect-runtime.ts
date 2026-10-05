@@ -1,10 +1,10 @@
-import { Auth, Cache, TaskRepository } from "core";
+import { Auth, Redis, TaskRepository } from "core";
 import type * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as ManagedRuntime from "effect/ManagedRuntime";
 
 export const runtime = ManagedRuntime.make(
-  Layer.mergeAll(TaskRepository.layer, Auth.layer, Cache.layer)
+  Layer.mergeAll(TaskRepository.layer, Auth.layer, Redis.cacheLayer)
 );
 
 // Runs an effect for an HTTP handler. The error channel must be `never`, so a

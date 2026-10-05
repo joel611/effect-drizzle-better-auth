@@ -129,7 +129,7 @@ expectTypeOf<Effect.Success<ReturnType<TaskRepository["Service"]["list"]>>>().to
   (typeof task.$inferSelect)[]
 >();
 
-// A fake `Cache`, merged beside the repository like the API runtime merges `Cache.layer`.
+// A fake `Cache`, merged beside the repository like the API runtime merges `Redis.cacheLayer`.
 // Each method reads it from the test's context with `Effect.serviceOption`.
 const cacheGet = vi.fn();
 const cacheSet = vi.fn();
@@ -295,10 +295,10 @@ layer(cachedSpiedLayer)("TaskRepository with a fake Cache", (it) => {
   );
 });
 
-// Wired like the API runtime: `Cache.layer` merged at the root beside `TaskRepository.layer`.
+// Wired like the API runtime: `Redis.cacheLayer` merged at the root beside `TaskRepository.layer`.
 // If the methods did not see the cache there, `list` would never write the key and this suite
 // fails. `Redis` is only here to inspect the key.
-layer(Layer.mergeAll(TaskRepository.layer, Cache.layer, Db.layer, Redis.layer))(
+layer(Layer.mergeAll(TaskRepository.layer, Redis.cacheLayer, Db.layer, Redis.layer))(
   "TaskRepository with Cache merged at the root, over Postgres and Redis",
   (it) => {
     it.effect("caches list in Redis and drops the cache when a task is created", () =>

@@ -89,7 +89,7 @@ const makeListCache = (cache: Option.Option<Cache["Service"]>): ListCache =>
   });
 
 // Optional: `Cache` is in no requirements type. It is read from the caller's context on each
-// call, so the cache is on whenever the runtime's root layer merges `Cache.layer`.
+// call, so the cache is on whenever the runtime's root layer merges `Redis.cacheLayer`.
 const currentListCache = Effect.map(Effect.serviceOption(Cache), makeListCache);
 
 export class TaskRepository extends Context.Service<TaskRepository>()("TaskRepository", {

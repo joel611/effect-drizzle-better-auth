@@ -5,9 +5,9 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as TestClock from "effect/testing/TestClock";
 
-import { Redis } from "../../redis";
-import type { RedisClient } from "../../redis";
-import { Cache, CacheError } from "../effect/layer";
+import { Cache, CacheError } from "../../cache";
+import { Redis } from "../effect/layer";
+import type { RedisClient } from "../client";
 
 // A fake ioredis client provided by the `Redis` tag, so each test decides what Redis returns.
 const redisGet = vi.fn();
@@ -15,7 +15,7 @@ const redisSet = vi.fn();
 const redisDel = vi.fn();
 const fakeRedis = { del: redisDel, get: redisGet, set: redisSet } as unknown as RedisClient;
 
-layer(Cache.layerNoDeps.pipe(Layer.provide(Layer.succeed(Redis, fakeRedis))))(
+layer(Redis.cacheLayerNoDeps.pipe(Layer.provide(Layer.succeed(Redis, fakeRedis))))(
   "Cache over a fake Redis client",
   (it) => {
     beforeEach(() => {
@@ -75,7 +75,7 @@ layer(Cache.layerNoDeps.pipe(Layer.provide(Layer.succeed(Redis, fakeRedis))))(
   },
 );
 
-layer(Cache.layer)("Cache over Redis", (it) => {
+layer(Redis.cacheLayer)("Cache over Redis", (it) => {
   it.effect("round-trips a value and deletes it", () =>
     Effect.gen(function* program() {
       const key = `vitest:${crypto.randomUUID()}`;
