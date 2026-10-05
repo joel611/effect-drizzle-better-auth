@@ -1,5 +1,5 @@
 import { expect, layer } from "@effect/vitest";
-import * as Effect from "effect/Effect";
+import { Effect } from "effect";
 
 import { Auth, authMockLayer } from "../effect/layer";
 

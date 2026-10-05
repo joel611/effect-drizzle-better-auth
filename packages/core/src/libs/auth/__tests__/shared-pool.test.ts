@@ -1,7 +1,6 @@
 import { expect, layer } from "@effect/vitest";
 import { eq } from "drizzle-orm";
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
+import { Effect, Layer } from "effect";
 
 import { TaskRepository } from "../../../demo-feature/task-repository";
 import { Db, user } from "../../db";

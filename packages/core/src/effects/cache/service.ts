@@ -1,7 +1,5 @@
-import * as Context from "effect/Context";
-import * as Data from "effect/Data";
-import type * as Effect from "effect/Effect";
-import type * as Option from "effect/Option";
+import { Context, Data } from "effect";
+import type { Effect, Option } from "effect";
 
 export class CacheNotRead extends Data.TaggedError("CacheNotRead")<{
   readonly cause: unknown;

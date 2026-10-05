@@ -1,8 +1,7 @@
 import { betterAuth } from "better-auth";
 import type { SecondaryStorage } from "better-auth";
 import { memoryAdapter } from "better-auth/adapters/memory";
-import * as Context from "effect/Context";
-import * as Layer from "effect/Layer";
+import { Context, Layer } from "effect";
 
 import { auth, authOptions } from "../auth";
 import type { AuthInstance } from "../auth";

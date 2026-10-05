@@ -4,8 +4,7 @@ import {
   taskCreateSchema,
   taskUpdateSchema,
 } from "core";
-import * as Effect from "effect/Effect";
-import * as Schema from "effect/Schema";
+import { Effect, Schema } from "effect";
 import { Hono } from "hono";
 
 import type { AppEnv } from "../app";

@@ -1,8 +1,6 @@
 import { expect, layer } from "@effect/vitest";
 import { eq } from "drizzle-orm";
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import * as Option from "effect/Option";
+import { Effect, Layer, Option } from "effect";
 
 import { cacheRedisLayer } from "../../../effects/cache/redis";
 import { Cache } from "../../../effects/cache/service";

@@ -1,6 +1,5 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import * as Context from "effect/Context";
-import * as Layer from "effect/Layer";
+import { Context, Layer } from "effect";
 
 import { db } from "../client";
 import type { Database } from "../client";

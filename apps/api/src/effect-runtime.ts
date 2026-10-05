@@ -1,7 +1,6 @@
 import { Auth, TaskRepository } from "core";
+import { Layer, ManagedRuntime } from "effect";
 import type * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import * as ManagedRuntime from "effect/ManagedRuntime";
 
 export const runtime = ManagedRuntime.make(
   Layer.mergeAll(TaskRepository.layer, Auth.layer)
