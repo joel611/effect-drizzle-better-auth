@@ -3,5 +3,5 @@ import ultracite from "ultracite/oxfmt";
 
 export default defineConfig({
   ...ultracite,
-  ignorePatterns: ultracite.ignorePatterns,
+  ignorePatterns: [...ultracite.ignorePatterns, ".agents/**", ".claude/**"],
 });
