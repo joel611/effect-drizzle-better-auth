@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, layer, vi } from "@effect/vitest";
 import { Effect, Fiber, Layer, Option } from "effect";
 import { TestClock } from "effect/testing";
 
+import { makeCacheMemory } from "../../effects/cache/memory";
 import { cacheRedisLayer } from "../../effects/cache/redis";
 import { Cache, CacheNotDeleted, CacheNotRead } from "../../effects/cache/service";
-import type { CacheNotWritten } from "../../effects/cache/service";
 import { Db, user } from "../../libs/db";
 import { dbMockLayer } from "../../libs/db/effect/layer";
 import { TaskNotListed } from "../errors";
@@ -28,22 +28,15 @@ const repoLayer = TaskRepository.layerNoDeps.pipe(
   ),
 );
 
-// In-memory Cache. Each test can override one call with `mockImplementationOnce`.
-const store = new Map<string, string>();
-const cacheGet = vi.fn((key: string): Effect.Effect<Option.Option<string>, CacheNotRead> =>
-  Effect.sync(() => Option.fromUndefinedOr(store.get(key))),
+// In-memory Cache, rebuilt empty before each test. Spies wrap it so a test can assert on
+// calls or override one call with `mockImplementationOnce`.
+let memory = Effect.runSync(makeCacheMemory);
+type CacheShape = typeof memory;
+const cacheGet = vi.fn<CacheShape["get"]>((key) => memory.get(key));
+const cacheSet = vi.fn<CacheShape["set"]>((key, value, ttlSeconds) =>
+  memory.set(key, value, ttlSeconds),
 );
-const cacheSet = vi.fn(
-  (key: string, value: string, _ttlSeconds?: number): Effect.Effect<void, CacheNotWritten> =>
-    Effect.sync(() => {
-      store.set(key, value);
-    }),
-);
-const cacheDelete = vi.fn((key: string): Effect.Effect<void, CacheNotDeleted> =>
-  Effect.sync(() => {
-    store.delete(key);
-  }),
-);
+const cacheDelete = vi.fn<CacheShape["delete"]>((key) => memory.delete(key));
 const failDelete = () => Effect.fail(new CacheNotDeleted({ cause: new Error("redis down") }));
 const fakeCacheLayer = Layer.succeed(Cache, {
   delete: (key) => cacheDelete(key),
@@ -74,7 +67,7 @@ describe("TaskService over a spied dbMockLayer", () => {
     cacheGet.mockClear();
     cacheSet.mockClear();
     cacheDelete.mockClear();
-    store.clear();
+    memory = Effect.runSync(makeCacheMemory);
   });
 
   it.effect("without a Cache, every list queries the driver", () =>
@@ -150,7 +143,7 @@ describe("TaskService over a spied dbMockLayer", () => {
 
   it.effect("treats a corrupt cached payload as a miss", () =>
     Effect.gen(function* program() {
-      store.set(TASK_LIST_KEY, "not json");
+      yield* memory.set(TASK_LIST_KEY, "not json");
       const service = yield* TaskService;
 
       const all = yield* service.list();
@@ -168,7 +161,7 @@ describe("TaskService over a spied dbMockLayer", () => {
       yield* service.create({ ownerId: "u1", title: "from the driver" });
 
       expect(cacheDelete).toHaveBeenCalledWith(TASK_LIST_KEY);
-      expect(store.has(TASK_LIST_KEY)).toBe(false);
+      expect(yield* memory.get(TASK_LIST_KEY)).toEqual(Option.none());
     }).pipe(Effect.provide(withCache)),
   );
 
@@ -180,7 +173,7 @@ describe("TaskService over a spied dbMockLayer", () => {
       yield* service.update(TaskId.make(7), "u1", { done: true });
 
       expect(cacheDelete).toHaveBeenCalledWith(TASK_LIST_KEY);
-      expect(store.has(TASK_LIST_KEY)).toBe(false);
+      expect(yield* memory.get(TASK_LIST_KEY)).toEqual(Option.none());
     }).pipe(Effect.provide(withCache)),
   );
 
