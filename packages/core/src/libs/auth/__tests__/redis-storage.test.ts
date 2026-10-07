@@ -1,14 +1,14 @@
 import { expect, layer } from "@effect/vitest";
-import { eq } from "drizzle-orm";
 import { Effect, Layer, Option } from "effect";
 
 import { cacheRedisLayer } from "../../../effects/cache/redis";
 import { Cache } from "../../../effects/cache/service";
-import { Db, session } from "../../db";
+import { Db } from "../../db";
 import { Auth } from "../effect/layer";
 
 // The `auth` singleton's secondary storage is built on the `redis` singleton, so a session
-// created through Auth must be readable through the Redis-backed Cache, and must not reach Postgres.
+// created through Auth must be readable through the Redis-backed Cache. Postgres has no `session`
+// table: the Better Auth CLI omits it when secondary storage is configured.
 layer(Layer.mergeAll(Auth.layer, Db.layer, cacheRedisLayer))(
   "Auth stores sessions in Redis",
   (it) => {
@@ -17,7 +17,6 @@ layer(Layer.mergeAll(Auth.layer, Db.layer, cacheRedisLayer))(
         const email = `redis-storage-${crypto.randomUUID()}@example.com`;
         const password = "correct-horse-battery";
         const auth = yield* Auth;
-        const db = yield* Db;
         const cache = yield* Cache;
 
         const signedUp = yield* Effect.tryPromise(() =>
@@ -27,12 +26,8 @@ layer(Layer.mergeAll(Auth.layer, Db.layer, cacheRedisLayer))(
           auth.api.signInEmail({ body: { email, password } }),
         );
         const stored = yield* cache.get(`better-auth:${signedIn.token}`);
-        const rows = yield* Effect.tryPromise(() =>
-          db.select().from(session).where(eq(session.userId, signedUp.user.id)),
-        );
 
         expect(Option.getOrThrow(stored)).toContain(signedUp.user.id);
-        expect(rows).toHaveLength(0);
       }),
     );
   },

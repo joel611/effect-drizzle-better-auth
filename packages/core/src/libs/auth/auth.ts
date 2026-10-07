@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import type { BetterAuthOptions, SecondaryStorage } from "better-auth";
 
 import { db } from "../db";
+import * as schema from "../db/schema";
 import { redis } from "../redis";
 
 export const authOptions = {
@@ -16,7 +17,7 @@ const secondaryStorage: SecondaryStorage = redisStorage({ client: redis });
 
 export const auth = betterAuth({
   ...authOptions,
-  database: drizzleAdapter(db, { provider: "pg" }),
+  database: drizzleAdapter(db, { provider: "pg", schema }),
   secondaryStorage,
   secret: process.env.BETTER_AUTH_SECRET,
 });
