@@ -1,9 +1,4 @@
-import {
-  TaskId,
-  TaskRepository,
-  taskCreateSchema,
-  taskUpdateSchema,
-} from "core";
+import { TaskId, TaskService, taskCreateSchema, taskUpdateSchema } from "core";
 import { Effect, Schema } from "effect";
 import { Hono } from "hono";
 
@@ -16,8 +11,8 @@ export const taskRoutes = new Hono<AppEnv>();
 taskRoutes.get("/", () =>
   run(
     Effect.gen(function* tasks() {
-      const repo = yield* TaskRepository;
-      return Response.json(yield* repo.list());
+      const service = yield* TaskService;
+      return Response.json(yield* service.list());
     }).pipe(
       Effect.catchTags({
         TaskNotListed: () =>
@@ -37,15 +32,15 @@ taskRoutes.post("/", requireAuth, async (c) => {
   return run(
     Effect.gen(function* created() {
       // Parse untrusted input at the HTTP boundary: the handler owns the
-      // 400 mapping, and TaskRepository.create receives typed data and
+      // 400 mapping, and TaskService.create receives typed data and
       // stays focused on persistence.
       const input = yield* Schema.decodeUnknownEffect(taskCreateSchema)({
         ownerId: user.id,
         title: body.title,
       });
 
-      const repo = yield* TaskRepository;
-      const task = yield* repo.create(input);
+      const service = yield* TaskService;
+      const task = yield* service.create(input);
       return Response.json(task, { status: 201 });
     }).pipe(
       Effect.catchTags({
@@ -74,8 +69,8 @@ taskRoutes.patch("/:id", requireAuth, async (c) => {
       );
       const input = yield* Schema.decodeUnknownEffect(taskUpdateSchema)(body);
 
-      const repo = yield* TaskRepository;
-      const task = yield* repo.update(id, user.id, input);
+      const service = yield* TaskService;
+      const task = yield* service.update(id, user.id, input);
       return Response.json(task);
     }).pipe(
       Effect.catchTags({

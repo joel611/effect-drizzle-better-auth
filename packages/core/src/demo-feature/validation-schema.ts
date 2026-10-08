@@ -1,10 +1,18 @@
 import { Schema, Struct } from "effect";
-import { createInsertSchema, createUpdateSchema } from "drizzle-orm/effect-schema";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-orm/effect-schema";
 
 import { task } from "./schema.ts";
 
 export const TaskId = Schema.Int.pipe(Schema.brand("TaskId"));
 export type TaskId = typeof TaskId.Type;
+
+// A stored row. `id` is overridden because `$type<TaskId>()` is type-only, so the
+// derived schema would decode it as a plain number.
+export const taskSelectSchema = createSelectSchema(task, { id: TaskId });
 
 // id and createdAt are DB-generated, so callers never supply them.
 export const taskCreateSchema = createInsertSchema(task, {
