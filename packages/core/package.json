@@ -10,7 +10,7 @@
   "scripts": {
     "typecheck": "tsgo --noEmit",
     "test": "vitest run",
-    "auth:generate": "bunx auth@latest generate --config auth.config.ts --output src/libs/auth/auth-schema.ts --yes",
+    "auth:generate": "bunx auth@latest generate --config src/libs/auth/auth.ts --output src/libs/auth/auth-schema.ts --yes",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push"

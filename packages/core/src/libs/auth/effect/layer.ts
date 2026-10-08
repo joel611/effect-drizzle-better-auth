@@ -45,9 +45,7 @@ export const authMockLayer = /* @__PURE__ */ Layer.sync(Auth, () =>
     ...authOptions,
     database: memoryAdapter({
       account: [],
-      session: [],
       user: [],
-      verification: [],
     }),
     secondaryStorage: memoryStorage(),
     secret: process.env.BETTER_AUTH_SECRET,

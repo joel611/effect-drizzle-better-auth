@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src", "auth.config.ts", "drizzle.config.ts"],
+  "include": ["src", "drizzle.config.ts"],
   "compilerOptions": {
     "strictNullChecks": true
   }
